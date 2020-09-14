@@ -4,11 +4,13 @@
 #include <cstddef>
 
 namespace pocket_stl{
+
+    // 5 种迭代器类型
     struct input_iterator_tag {};
     struct output_iterator_tag {};
-    struct forward_iterator_tag {};
-    struct bidrectional_iterator_tag {};
-    struct random_access_iterator_tag {};
+    struct forward_iterator_tag : public input_iterator_tag {};
+    struct bidrectional_iterator_tag : public forward_iterator_tag {};
+    struct random_access_iterator_tag : public bidrectional_iterator_tag {};
 
     //避免遗漏，迭代器可继承自 pocket_stl:iterator
     template <class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
@@ -49,6 +51,14 @@ namespace pocket_stl{
         typedef const T*                                pointer;
         typedef const T&                                reference;
     };
+
+    //方便决定某迭代器的类型（category）
+    template <class Iterator>
+    typename iterator_traits<Iterator>::iterator_category
+    iterator_category(const Iterator&){
+        typedef typename iterator_traits<Iterator>::iterator_category category;
+        return category();
+    }
 }
 
 #endif
