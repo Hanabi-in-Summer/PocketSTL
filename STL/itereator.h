@@ -52,13 +52,36 @@ namespace pocket_stl{
         typedef const T&                                reference;
     };
 
-    //方便决定某迭代器的类型（category）
+    //方便决定某迭代器的类型（category）, 可直接作为函数参数传入，方便重载函数的选择
     template <class Iterator>
-    typename iterator_traits<Iterator>::iterator_category
+    inline typename iterator_traits<Iterator>::iterator_category
     iterator_category(const Iterator&){
         typedef typename iterator_traits<Iterator>::iterator_category category;
         return category();
     }
+
+    //方便决定迭代器的 value_type
+    template <class Iterator>
+    inline typename iterator_traits<Iterator>::value_type*
+    value_type(const Iterator&){
+        return static_cast<typename iterator_traits<Iterator>::value_type*>(0);
+    }
+
+    //方便决定迭代器的 difference_type
+    template <class Iterator>
+    inline typename iterator_traits<Iterator>::difference_type*
+    distance_type(const Iterator&){
+        return static_cast<typename iterator_traits<Iterator>::difference_type*>(0);
+    }
+
+
+
+    /*
+     * 补充 reverse iterator
+     * inserter iterator
+     * 
+     *    
+    */
 }
 
 #endif
