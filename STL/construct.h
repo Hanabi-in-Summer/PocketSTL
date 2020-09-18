@@ -8,6 +8,7 @@
 
 #include <new>
 #include "iterator.h"
+#include "type_traits.h"
 
 namespace pocket_stl{
     // construct
@@ -21,6 +22,40 @@ namespace pocket_stl{
     void construct(T* p, Args&&... args){
         ::new (p) T(std::forward<Args>(args)...);
     }
+
+    // destroy
+    template <class T>
+    void destroy(T* p, __true_type) { }
+
+    template <class T>
+    void destroy(T* p, __false_type){
+        if (!p) {
+            p->~T();
+        }
+    }
+
+    template <class ForwardIterator>
+    void destroy(ForwardIterator first, ForwardIterator last){
+        destroy_aux(first, last, typename ForwardIterator::value_type());
+    }
+
+    template <class ForwardIterator, class T>
+    void destroy_aux(ForwardIterator first, ForwardIterator last, T*){
+        __destroy(first, last, __type_traits<T>::has_trivial_destructor());
+    }
+
+    template <class ForwardIterator>
+    void __destroy(ForwardIterator first, ForwardIterator last, __true_type) { }
+
+    template <class ForwardIterator>
+    void __destroy(ForwardIterator first, ForwardIterator last, __false_type){
+        while(first < last){
+            destroy(&*first);
+            ++first;
+        }
+    }
+
+
 }
 
 
