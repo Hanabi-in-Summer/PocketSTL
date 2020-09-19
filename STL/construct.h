@@ -41,7 +41,7 @@ namespace pocket_stl{
 
     template <class ForwardIterator, class T>
     void destroy_aux(ForwardIterator first, ForwardIterator last, T*){
-        __destroy(first, last, __type_traits<T>::has_trivial_destructor());
+        __destroy(first, last, pocket_stl::__type_traits<T>::has_trivial_destructor());
     }
 
     template <class ForwardIterator>

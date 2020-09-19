@@ -4,6 +4,7 @@
 // #include <new>
 #include <cstddef>
 #include <climits>
+#include "construct.h"
 
 namespace pocket_stl{
     template <class T>
@@ -80,6 +81,18 @@ namespace pocket_stl{
         ::operator delete(p);
     }
 
+    template <class T>
+    void allocator<T>::construct(pointer p, const_reference x){
+        construct<T, T>(p, x);
+        return;
+    }
+
+    template <class T>
+    template <class... Args>
+    void allocator<T>::construct(T* p, Args&&... args){
+        construct(p, std::forward<Args>(args)...);
+        return;
+    }
 
 }
 
