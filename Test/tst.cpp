@@ -10,7 +10,7 @@
 using std::vector;
 
 int main() {
-    std::vector<int, pocket_stl::allocator<vector<int>>> a(3, 3);
+    std::vector<int, pocket_stl::allocator<vector<int>>> a(3);
     for (int i = 0; i < a.size(); ++i){
         std::cout << a[i] << ' ';
     }

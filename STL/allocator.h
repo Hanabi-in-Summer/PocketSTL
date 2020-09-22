@@ -90,10 +90,15 @@ namespace pocket_stl{
     template <class T>
     template <class... Args>
     void allocator<T>::construct(T* p, Args&&... args){
-        construct(p, std::forward<Args>(args)...);
+        pocket_stl::construct(p, std::forward<Args>(args)...);
         return;
     }
 
+    template <class T>
+    void allocator<T>::destroy(pointer p){
+        pocket_stl::destroy(p, pocket_stl::__type_traits<T>::has_trivial_destructor());
+        return;
+    }
 }
 
 #endif
