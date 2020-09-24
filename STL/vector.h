@@ -3,6 +3,7 @@
 
 /*
 ** vector
+** vector<bool> 需特化， 在 std 中不是容器
 */
 
 #include <cstddef>
