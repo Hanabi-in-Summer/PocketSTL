@@ -26,7 +26,7 @@ namespace pocket_stl{
     template <class InputIterator, class ForwardIterator, class T>
     inline ForwardIterator
     __uninitialized_copy(InputIterator first, InputIterator last, ForwardIterator result, T*){  // T* 提取迭代器解引用的型别
-        typedef typename __type_traits<T>::is_pod_type is_POD;
+        typedef typename __type_traits<T>::is_POD_type is_POD;
         return __uninitialized_copy_aux(first, last, result, is_POD());
     }
 
@@ -46,8 +46,8 @@ namespace pocket_stl{
             }
         }
         catch(...){                                 // commit or rollback
-            for (; result != cur; ++cur){
-                destroy(result);
+            for (; result != cur; ++result){
+                destroy(&*result);
             }
         }
         return cur;
@@ -59,6 +59,54 @@ namespace pocket_stl{
     // 返回复制结束的位置                                                                       //
     // commit or rollback                                                                      //
     /////////////////////////////////////////////////////////////////////////////////////////////
+    template <class InputIterator, class Size, class ForwardIterator>
+    ForwardIterator
+    uninitialized_copy_n(InputIterator first, Size n, ForwardIterator result){
+        return __uninitialized_copy_n(first, n, result, value_type(result));
+    }
+
+    template <class InputIterator, class Size, class ForwardIterator, class T>
+    ForwardIterator
+    __uninitialized_copy_n(InputIterator first, Size n, ForwardIterator result, T*){
+        typedef typename __type_traits<T>::is_POD_type is_POD;
+        return __uninitialized_copy_n_aux(first, n, result, is_POD());
+    }
+
+    template <class InputIterator, class Size, class ForwardIterator>
+    ForwardIterator
+    __uninitialized_copy_n_aux(InputIterator first, Size n, ForwardIterator result, __true_type){
+        return std::copy_n(first, n, result);
+    }
+
+    template <class InputIterator, class Size, class ForwardIterator>
+    ForwardIterator
+    _uninitialized_copy_n_aux(InputIterator first, Size n, ForwardIterator result, __false_type){
+        ForwardIterator cur = result;
+        try{
+            for (; n > 0; --n, ++cur, ++first){
+                construct(&*cur, *first);
+            }
+        }
+        catch(...){
+            for (; cur != result; ++result){
+                destroy(&*result);
+            }
+        }
+        return cur;
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    // uninitialized_fill                                                                      //
+    // 调用 copy constructor 在 [first, last) 范围内填充元素                                    //
+    // 返回复制结束的位置                                                                       //
+    // commit or rollback                                                                      //
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    template <class ForwardIterator, class T>
+    void
+    uninitialized_fill(ForwardIterator first, ForwardIterator last, const T& x){
+        
+    }
 }
 
 
