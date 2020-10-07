@@ -5,4 +5,8 @@
 ** 以内存池的方式进行内存分配
 */
 
+namespace pocktet_stl{
+    
+}
+
 #endif
