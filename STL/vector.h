@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <type_traits>
 #include "allocator.h"
 #include "uninitialized.h"
 
@@ -37,7 +38,8 @@ namespace pocket_stl{
         iterator end_of_storage;
 
     public:
-        // ctor 、 copy_ctor 、 move_ctor 、 dtor
+        /***************************ctor 、 copy_ctor 、 move_ctor 、 dtor************************/
+        // default
         vector() noexcept{
             try{
                 start = allocator_type::allocate(16);
@@ -51,6 +53,7 @@ namespace pocket_stl{
             }
         }
 
+        // fill
         explicit vector(size_type n){
             allocate_and_fill(n, value_type());
         }
@@ -59,21 +62,50 @@ namespace pocket_stl{
             allocate_and_fill(n, val);
         }
 
-
-
-
-    public:
-        iterator allocate_and_fill(size_type n, const value_type& val){
-            start = allocator_type::allocate(n);
-            end = start + n;
-            uninitialized_fill_n(start, n, val);
-            end_of_storage = end;
+        // range
+        template <class InputIterator>
+        vector(InputIterator first, InputIterator last){
+            initialize_aux(first, last, std::is_integral<InputIterator>::type);
         }
 
 
 
 
+    public:
+        void allocate_and_fill(size_type n, const value_type& val);
+        template <class InputIterator>
+        void initialize_aux(InputIterator first, InputIterator last, std::true_type);
+        template <class Integer>
+        void initialize_aux(Integer n, Integer val, std::false_type);
+
     };
-}
+
+    template <class T, class Alloc>
+    void vector<T, Alloc>::allocate_and_fill(size_type n, const value_type& val) {
+        start = allocator_type::allocate(n);
+        end = start + n;
+        uninitialized_fill_n(start, n, val);
+        end_of_storage = end;
+    }
+
+    template <class T, class Alloc>
+    template <class InputIterator>
+    void vector<T, Alloc>::initialize_aux(InputIterator first, InputIterator last, std::true_type){
+        size_type n = last - first;
+        start = allocate(n);
+        end = uninitialized_copy(first, last, start);
+        end_of_storage = end;
+    }
+    
+    template <class T, class Alloc>
+    template <class Integer>
+    void vector<T, Alloc>::initialize_aux(Integer n, Integer val, std::false_type){
+        start = allocate(static_cast<size_type>(n));
+        uninitialized_fill_n(start, n, val);
+        end = start + n;
+        end_of_storage = end;
+    }
+    
+} // namespace
 
 #endif
