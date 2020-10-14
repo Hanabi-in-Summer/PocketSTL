@@ -37,8 +37,8 @@ namespace pocket_stl{
         iterator __end;
         iterator __end_of_storage;
 
-    public:
-        /***************************ctor 、 copy_ctor 、 move_ctor 、 dtor**************************/
+    public:*
+        /***************ctor 、 copy_ctor 、 move_ctor 、 dtor 、 operator=*****************/
         // **** default ctor
         vector() noexcept{
             try{
@@ -76,10 +76,44 @@ namespace pocket_stl{
             allocate_and_copy(x.begin(), x.end());
         }
 
+        // **** move ctor
+        vector(vector&& x) noexcept
+            : __start(x.__start), __end(x.__end), __end_of_storage(x.__end_of_storage){
+            x.__start = nullptr;
+            x.__end = nullptr;
+            x.__end_of_storage = nullptr;
+        }
 
+        // **** initializer list
+        vector(std::initializer_list<value_type> il){
+            allocate_and_copy(il.begin(), il.end());
+        }
 
+        // **** dtor
+        ~vector(){
+            destroy_and_deallocate_all();
+        }
+
+        // **** operator=
+        // copy
+        vector& operator=(const vector& x);
+        // move
+        vector& operator=(vector&& x);
+        //initializer list
+        vector& operator=(std::initializer_list<value_type> il);
 
     public:
+        /********************** Iterator 函数 *****************************/
+
+        /********************** Capacity 函数 *****************************/
+        size_type size() const noexcept { return static_cast<size_type>(__end - __start); }
+        size_type capacity() const noexcept{ return static_cast<size_type>(__end_of_storage - __start); }
+
+        /********************** Modifiers 函数 ****************************/
+        void swap(vector& x);
+
+    private:
+        /***********************内存分配构造工具*****************************/
         void allocate_and_fill(size_type n, const value_type& val);
         template <class InputIterator>
         void allocate_and_copy(InputIterator first, InputIterator last);
@@ -87,11 +121,46 @@ namespace pocket_stl{
         void initialize_aux(InputIterator first, InputIterator last, std::true_type);
         template <class Integer>
         void initialize_aux(Integer n, Integer val, std::false_type);
+        void destroy_and_deallocate_all();
     };
 
 
 
-/**************************************部分函数定义**********************************************/
+    /*-------------------------------部分函数定义------------------------------------*/
+    //--------------------- operator=
+    //copy
+    template <class T, class Alloc>
+    vector<T, Alloc>& vector<T, Alloc>::operator=(const vector<T, Alloc>& x){
+        if(this != &x){
+            const size_type len = x.size();
+            if(len > capacity()){
+                vector tmp(x.begin(), x.end());
+                swap(tmp);
+            }
+            else if(len >= size()){
+                std::copy(x.begin(), x.begin() + size(), __start);
+                uninitialized_copy(x.begin() + size(), x.end(), __end);
+                __end = __start + len;
+            }
+            else if(len < size()){
+                std::copy(x.begin(), x.end(), __start);
+                data_allocator::destroy(__start + len, __end);
+                __end = __start + len;
+            }
+        }
+    }
+
+    //--------------------- Modifiers 函数
+    template <class T, class Alloc>
+    void vector<T, Alloc>::swap(vector<T, Alloc>& x){
+        if(this != &x){             // 暂时调用 std::swap
+            std::swap(__start, x.__start);
+            std::swap(__end, x.__end);
+            std::swap(__end_of_storage, x.__end_of_storage);
+        }
+    }
+    
+    // -------------------- 内存分配工具
     template <class T, class Alloc>
     void vector<T, Alloc>::allocate_and_fill(size_type n, const value_type& val) {
         __start = allocator_type::allocate(n);
@@ -121,6 +190,12 @@ namespace pocket_stl{
         uninitialized_fill_n(__start, n, val);
         __end = __start + n;
         __end_of_storage = __end;
+    }
+
+    template <class T, class Alloc>
+    void vector<T, Alloc>::destroy_and_deallocate_all (){
+        data_allocator::destroy(__start, __end);
+        data_allocator::deallocate(__start, __end_of_storage - __start);
     }
     
 } // namespace
