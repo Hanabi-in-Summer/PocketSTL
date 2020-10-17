@@ -5,7 +5,7 @@
 ** vector
 ** vector<bool> 需特化， 在 std 中不是容器
 */
-
+#include <stdexcept>
 #include <cstddef>
 #include <initializer_list>
 #include <type_traits>
@@ -117,18 +117,33 @@ namespace pocket_stl{
         const_reverse_iterator  crbegin() { return reverse_iterator(end()); }
         const_reverse_iterator  crend() { return reverse_iterator(begin()); }
         /********************** Capacity 函数 *****************************/
-        size_type size() const noexcept { return static_cast<size_type>(__end - __start); }
-        size_type max_size() const noexcept { return size_type(-1) / sizeof(value_type); }
-        void resize(size_type n) { return resize(n, value_type()); }
-        void resize(size_type n, const value_type& val);
-
-        size_type capacity() const noexcept{ return static_cast<size_type>(__end_of_storage - __start); }
-        
-
+        size_type   size() const noexcept { return static_cast<size_type>(__end - __start); }
+        size_type   max_size() const noexcept { return size_type(-1) / sizeof(value_type); }
+        void        resize(size_type n) { return resize(n, value_type()); }
+        void        resize(size_type n, const value_type& val);
+        size_type   capacity() const noexcept { return static_cast<size_type>(__end_of_storage - __start); }
+        bool        empty() const noexcept { return __start == __end; }
+        void        reserve(size_type n);
+        void        shrink_to_fit() { vector tmp(*this); swap(tmp); }
+        /********************** Element Access 函数 *************************/
+        reference       operator[](size_type n) { 
+            if (n < size()) return *(__start + n); 
+            else throw std::out_of_range("vector operator[] is out of range");
+        }
+        const_reference operator[] (size_type n) const{
+            if (n < size()) return *(__start + n); 
+            else throw std::out_of_range("vector operator[] is out of range");
+        }
         /********************** Modifiers 函数 ****************************/
-        iterator erase(const_iterator position);
-        iterator erase(const_iterator first, const_iterator last);
-        void swap(vector& x);
+        iterator insert (const_iterator position, const value_type& val);                   // single element
+        iterator insert (const_iterator position, size_type n, const value_type& val);      // fill
+        template <class InputIterator>  
+        iterator insert (const_iterator position, InputIterator first, InputIterator last); // range
+        iterator insert (const_iterator position, value_type&& val);                        // move
+        iterator insert (const_iterator position, std::initializer_list<value_type> il);    // initializer_list
+        iterator erase (const_iterator position);
+        iterator erase (const_iterator first, const_iterator last);
+        void     swap (vector& x);
 
     private:
         /***********************内存分配构造工具*****************************/
@@ -195,26 +210,73 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void 
     vector<T, Alloc>::resize(size_type n, const value_type& val){
-        if(n < size()){
+        size_type size = size();
+        if(n < size){
             erase(__start + n, __end);
             __end = __start + n;
         }
         else if(n > capacity()){
-            
+            insert(__end, n - size, val);
+        }
+        else{
+            uninitialized_fill_n(__end, n - size, val);
+            __end = __start + n;
         }
     }
 
-    //--------------------- Modifiers 函数
     template <class T, class Alloc>
     void 
-    vector<T, Alloc>::swap(vector<T, Alloc>& x){
+    vector<T, Alloc>::reserve(size_type n){
+        if (n > max_size()) throw std::length_error("the size requested is larger than the max_size of vector");
+        if (n <= capacity()) return;
+        pointer new_start = data_allocator::allocate(n);
+        pointer new_end = uninitialized_copy(__start, __end, new_start);
+        destroy_and_deallocate_all();
+        __start = new_start;
+        __end_of_storage = __end = new_end;
+    }
+
+    //--------------------- Modifiers 函数
+
+    template <class T, class Alloc>
+    typename vector<T, Alloc>::iterator
+    vector<T, Alloc>::insert(const_iterator position, const value_type& val){
+
+    }
+
+    template <class T, class Alloc>
+    typename vector<T, Alloc>::iterator
+    vector<T, Alloc>::erase(const_iterator position){
+        if(position + 1 != __end){
+            std::copy(position + 1, __end, position);
+        }
+        --__end;
+        data_allocator::destroy(__end);
+        return position;
+    }
+
+    template <class T, class Alloc>
+    typename vector<T, Alloc>::iterator
+    vector<T, Alloc>::erase(const_iterator first, const_iterator last){
+        iterator tmp = first;
+        if(last != __end){
+            tmp = std::copy(last, __end, first);
+        }
+        data_allocator::destroy(tmp, last);
+        __end -= last - first;
+        return first;
+    }
+
+    template <class T, class Alloc>
+    void 
+    vector<T, Alloc>::swap(vector<T, Alloc>& x) {
         if(this != &x){             // 暂时调用 std::swap
             std::swap(__start, x.__start);
             std::swap(__end, x.__end);
             std::swap(__end_of_storage, x.__end_of_storage);
         }
     }
-    
+
     // -------------------- 内存分配工具
     template <class T, class Alloc>
     void 
