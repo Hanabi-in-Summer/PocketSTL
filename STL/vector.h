@@ -123,39 +123,54 @@ namespace pocket_stl{
         void        resize(size_type n, const value_type& val);
         size_type   capacity() const noexcept { return static_cast<size_type>(__end_of_storage - __start); }
         bool        empty() const noexcept { return __start == __end; }
-        void        reserve(size_type n);
+        void        reserve (size_type n);
         void        shrink_to_fit() { vector tmp(*this); swap(tmp); }
         /********************** Element Access 函数 *************************/
-        reference       operator[](size_type n) { 
+        reference       operator[] (size_type n) { return *(__start + n); }
+        const_reference operator[] (size_type n) const{ return *(__start + n); }
+        reference       at (size_type n){
             if (n < size()) return *(__start + n); 
-            else throw std::out_of_range("vector operator[] is out of range");
-        }
-        const_reference operator[] (size_type n) const{
+            else throw std::out_of_range("vector : the parameter of [at] is out of range");
+        }        
+        const_reference at (size_type n) const{
             if (n < size()) return *(__start + n); 
-            else throw std::out_of_range("vector operator[] is out of range");
+            else throw std::out_of_range("vector : the parameter of [at] is out of range");
         }
+        reference       front() { return *__start; }
+        const_reference front() const { return *__start; }
+        reference       back() { return *(__end - 1); }
+        const_reference back() const { return *(__end - 1); }
+        value_type*     data() noexcept { return __start; }
+        const value_type* data() const noexcept { return  __start; }
         /********************** Modifiers 函数 ****************************/
-        iterator insert (const_iterator position, const value_type& val);                   // single element
-        iterator insert (const_iterator position, size_type n, const value_type& val);      // fill
+        // assign
+        template <class InputIterator>
+        void        assign (InputIterator first, InputIterator last);                           // range
+        void        assign (size_type n, const value_type& val);                                // fill
+        void        assign (std::initializer_list<value_type> il);                              // initialized_list
+        // insert
+        iterator    insert (const_iterator position, const value_type& val);                    // single element
+        iterator    insert (const_iterator position, size_type n, const value_type& val);       // fill
         template <class InputIterator>  
-        iterator insert (const_iterator position, InputIterator first, InputIterator last); // range
-        iterator insert (const_iterator position, value_type&& val);                        // move
-        iterator insert (const_iterator position, std::initializer_list<value_type> il);    // initializer_list
-        iterator erase (const_iterator position);
-        iterator erase (const_iterator first, const_iterator last);
-        void     swap (vector& x);
+        iterator    insert (const_iterator position, InputIterator first, InputIterator last);  // range
+        iterator    insert (const_iterator position, value_type&& val);                         // move
+        iterator    insert (const_iterator position, std::initializer_list<value_type> il);     // initializer_list
+        // erase
+        iterator    erase (const_iterator position);
+        iterator    erase (const_iterator first, const_iterator last);
+        void        swap (vector& x);
 
     private:
         /***********************内存分配构造工具*****************************/
-        void allocate_and_fill(size_type n, const value_type& val);
+        void allocate_and_fill (size_type n, const value_type& val);
         template <class InputIterator>
-        void allocate_and_copy(InputIterator first, InputIterator last);
+        void allocate_and_copy (InputIterator first, InputIterator last);
         template <class InputIterator>
-        void range_initialize(InputIterator first, InputIterator last);
+        void range_initialize (InputIterator first, InputIterator last);
         template <class InputIterator>
-        void range_initialize_aux(InputIterator first, InputIterator last, std::true_type);
+        void range_initialize_aux (InputIterator first, InputIterator last, std::true_type);
         template <class Integer>
-        void range_initialize_aux(Integer n, Integer val, std::false_type);
+        void range_initialize_aux (Integer n, Integer val, std::false_type);
         void destroy_and_deallocate_all();
     };
 
@@ -227,7 +242,7 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void 
     vector<T, Alloc>::reserve(size_type n){
-        if (n > max_size()) throw std::length_error("the size requested is larger than the max_size of vector");
+        if (n > max_size()) throw std::length_error("vector : the size requested is larger than the max_size");
         if (n <= capacity()) return;
         pointer new_start = data_allocator::allocate(n);
         pointer new_end = uninitialized_copy(__start, __end, new_start);
@@ -237,6 +252,58 @@ namespace pocket_stl{
     }
 
     //--------------------- Modifiers 函数
+    template <class T, class Alloc>
+    template <class InputIterator>
+    void
+    vector<T, Alloc>::assign(InputIterator first, InputIterator last){
+        auto len = std::distance(first, last);
+        if(len <= size()){
+            iterator ptr = __start;
+            for (; first < last; ++ptr, ++first){
+                *ptr = *first;
+            }
+            for (; ptr < __end; ++ptr){
+                data_allocator::destroy(ptr);
+            }
+        }
+        else if(len <= capacity()){
+            iterator ptr = __start;
+            for (; ptr < __end; ++ptr, ++first){
+                *ptr = *first;
+            }
+            uninitialized_copy(first, last, ptr);
+            __end = ptr;
+        }
+        else{
+            destroy_and_deallocate_all();
+            allocate_and_copy(first, last);
+        }
+    }
+
+    template <class T, class Alloc>
+    void        
+    vector<T, Alloc>::assign(size_type n, const value_type& val){
+        if(n <= size()){
+            iterator ptr = __start;
+            for (size_type i = 0; i < n; ++i, ++ptr){
+                *ptr = val;
+            }
+            for (; ptr < __end; ++ptr){
+                data_allocator::destroy(ptr);
+            }
+        }
+        else if(n < capacity()){
+            iterator ptr = __start;
+            for (; ptr < __end; ++ptr){
+                *ptr = val;
+            }
+            uninitialized_fill_n(ptr, n - size());
+        }
+        else{
+            destroy_and_deallocate_all();
+            allocate_and_fill(n, val);
+        }
+    }
 
     template <class T, class Alloc>
     typename vector<T, Alloc>::iterator
