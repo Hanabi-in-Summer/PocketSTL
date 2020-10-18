@@ -262,17 +262,18 @@ namespace pocket_stl{
             for (; first < last; ++ptr, ++first){
                 *ptr = *first;
             }
+            auto new_end = ptr;
             for (; ptr < __end; ++ptr){
                 data_allocator::destroy(ptr);
             }
+            __end = new_end;
         }
         else if(len <= capacity()){
             iterator ptr = __start;
             for (; ptr < __end; ++ptr, ++first){
                 *ptr = *first;
             }
-            uninitialized_copy(first, last, ptr);
-            __end = ptr;
+            __end = uninitialized_copy(first, last, ptr);
         }
         else{
             destroy_and_deallocate_all();
@@ -291,6 +292,7 @@ namespace pocket_stl{
             for (; ptr < __end; ++ptr){
                 data_allocator::destroy(ptr);
             }
+            __end = __start + n;
         }
         else if(n < capacity()){
             iterator ptr = __start;
@@ -298,10 +300,40 @@ namespace pocket_stl{
                 *ptr = val;
             }
             uninitialized_fill_n(ptr, n - size());
+            __end = __start + n;
         }
         else{
             destroy_and_deallocate_all();
             allocate_and_fill(n, val);
+        }
+    }
+
+    template <class T, class Alloc>
+    void
+    vector<T, Alloc>::assign(std::initializer_list<value_type> il){
+        auto len = il.size();
+        if(len <= size()){
+            iterator ptr = __start;
+            auto itr_il = il.begin();
+            for (; itr_il < end(); ++ptr, ++itr_il){
+                *ptr = *itr_il;
+            }
+            for (; ptr < __end; ++ptr){
+                data_allocator::destroy(ptr);
+            }
+            __end = __start + il.size();
+        }
+        else if(len <= capacity()){
+            iterator ptr = __start;
+            auto itr_il = il.begin();
+            for (; ptr < __end; ++ptr, ++itr_il){
+                *ptr = *itr_il;
+            }
+            __end = uninitialized_copy(itr_il, il.end(), ptr);
+        }
+        else{
+            destroy_and_deallocate_all();
+            allocate_and_copy(il.begin(), il.end());
         }
     }
 
