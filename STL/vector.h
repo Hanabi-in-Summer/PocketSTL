@@ -147,7 +147,10 @@ namespace pocket_stl{
         template <class InputIterator>
         void        assign (InputIterator first, InputIterator last);                           // range
         void        assign (size_type n, const value_type& val);                                // fill
-        void        assign (std::initializer_list<value_type> il);                              // initialized_list
+        void        assign (std::initializer_list<value_type> il);                              // initializer_list
+        // push_back
+        void        push_back (const value_type& val);
+        void        push_back (value_type&& val);
         // insert
         iterator    insert (const_iterator position, const value_type& val);                    // single element
         iterator    insert (const_iterator position, size_type n, const value_type& val);       // fill
@@ -340,7 +343,103 @@ namespace pocket_stl{
     template <class T, class Alloc>
     typename vector<T, Alloc>::iterator
     vector<T, Alloc>::insert(const_iterator position, const value_type& val){
+        return insert(position, size_type(1), val);
+    }
 
+    template <class T, class Alloc>
+    typename vector<T, Alloc>::iterator
+    vector<T, Alloc>::insert(const_iterator position, size_type n, const value_type& val){
+        if(n != 0){
+            const size_type pos_before = position - __start;
+            if(size_type(__end_of_storage - __end) >= n){
+                const size_type elems_after = __end - position;
+                iterator old_end = __end;
+                if(elems_after > n){
+                    uninitialized_copy(__end - n, old_end, __end);
+                    __end += n;
+                    std::copy_backward(position, old_end - n, old_end);
+                    std::fill(position, position + n, val);
+                }
+                else{
+                    uninitialized_fill_n(__end, n - elems_after, val);
+                    __end = position + n;
+                    uninitialized_copy(position, old_end, position + n);
+                    __end += elems_after;
+                    std::fill(position, old_end, val);
+                }
+            }
+            else{
+                // 需要分配新的内存
+                const size_type old_size = size();
+                const size_type len = old_size + max(old_size, n);
+                iterator new_start = data_allocator::allocate(len);
+                iterator new_end = new_start;
+                try{
+                    new_end = uninitialized_copy(__start, position, new_start);
+                    new_end = uninitialized_fill_n(new_end, n, val);
+                    new_end = uninitialized_copy(position, __end, new_end);
+                }
+                catch(...){
+                    destroy(new_start, new_end);
+                    data_allocator::deallocate(new_start, new_end);
+                    throw;
+                }
+                destroy_and_deallocate_all();
+                __start = new_start;
+                __end = new_end;
+                __end_of_storage = __start + len;
+            }
+            return __start + pos_before;
+        }
+    }
+
+    template <class T, class Alloc>
+    template <class InputIterator>
+    typename vector<T, Alloc>::iterator
+    vector<T, Alloc>::insert(const_iterator position, InputIterator first, InputIterator last){
+        if (first == last) return position;
+        const size_type n = std::distance(first, last);
+        // const size_type pos_before = position - __start;
+        if (size_type(__end_of_storage - __end) > n){
+            const size_type elems_after = __end - position;
+            iterator old_end = __end;
+            if (elems_after > n){
+                uninitialized_copy(old_end - n, old_end, old_end);
+                __end += n;
+                std::copy_backward(position, old_end - n, old_end);
+                std::copy(first, last, position);
+            }
+            else{
+                InputIterator mid = first;
+                std::advance(mid, elems_after);
+                __end = uninitialized_copy(mid, last, __end);
+                __end = uninitialized_copy(position, old_end, __end);
+                uninitialized_copy(first, mid, position);
+            }
+            return position;
+        }
+        else{
+            // 需要重新分配空间
+            const size_type pos_before = position - __start;
+            const size_type old_size = size();
+            const size_type len = old_size + max(old_size, n);
+            iterator new_start = data_allocator::allocate(len);
+            iterator new_end = new_start;
+            try{
+                new_end = uninitialized_copy(__start, position, new_start);
+                new_end = uninitialized_copy(first, last, new_end);
+                new_end = uninitialized_copy(position, __end, new_end);
+            }
+            catch(...){
+                destroy(new_start, new_end);
+                data_allocator::deallocate(new_start, new_end);
+                throw;
+            }
+            __start = new_start;
+            __end = new_end;
+            __end_of_storage = __start + len;
+            return __start + pos_before;
+        }
     }
 
     template <class T, class Alloc>

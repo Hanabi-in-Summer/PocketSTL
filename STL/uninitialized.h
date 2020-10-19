@@ -141,13 +141,13 @@ namespace pocket_stl{
     // commit or rollback                                                                      //
     /////////////////////////////////////////////////////////////////////////////////////////////
     template <class ForwardIterator, class Size, class T>
-    void
+    ForwardIterator
     __uninitialized_fill_n_aux(ForwardIterator first, Size n, const T& x, __true_type){
-        std::fill_n(first, n, x);
+        return std::fill_n(first, n, x);
     }
 
     template <class ForwarIterator, class Size, class T>
-    void
+    ForwarIterator
     __uninitialized_fill_n_aux(ForwarIterator first, Size n, const T& x, __false_type){
         ForwarIterator cur = first;
         try{
@@ -160,18 +160,20 @@ namespace pocket_stl{
                 destroy(&*first);
             }
         }
+        return cur;
     }
 
     template <class ForwardIterator, class Size, class T, class T1>
-    void
+    ForwardIterator
     __uninitialized_fill_n(ForwardIterator first, Size n, const T& x, T1*){
         typedef typename __type_traits<T1>::is_POD_type is_POD;
-        __uninitialized_fill_n_aux(first, n, x, is_POD());
+        return __uninitialized_fill_n_aux(first, n, x, is_POD());
     }
 
     template <class ForwardIterator, class Size, class T>
-    void uninitialized_fill_n(ForwardIterator first, Size n, const T& x){
-        __uninitialized_fill_n(first, n, x, value_type(first));
+    ForwardIterator 
+    uninitialized_fill_n(ForwardIterator first, Size n, const T& x){
+        return __uninitialized_fill_n(first, n, x, value_type(first));
     }
 
 }
