@@ -37,7 +37,7 @@ namespace pocket_stl{
         iterator __end;
         iterator __end_of_storage;
 
-    public:*
+    public:
         /***************ctor 、 copy_ctor 、 move_ctor 、 dtor 、 operator=*****************/
         // **** default ctor
         vector() noexcept{
@@ -66,7 +66,7 @@ namespace pocket_stl{
         // 判断 InputIterator 是否为整型
         // 整型则调用 uninitialized_fill
         // 非整形则调用 uninitialized_copy
-        template <class InputIterator>
+        template <class InputIterator, class = typename std::enable_if<!std::is_integral<InputIterator>::value>::type> // 元编程 enable_if
         vector(InputIterator first, InputIterator last){
             range_initialize(first, last);
         }
@@ -157,7 +157,7 @@ namespace pocket_stl{
         template <class InputIterator>  
         iterator    insert (const_iterator position, InputIterator first, InputIterator last);  // range
         iterator    insert (const_iterator position, value_type&& val);                         // move
-        iterator    insert (const_iterator position, std::initializer_list<value_type> il);     // initializer_list
+        // iterator    insert (const_iterator position, std::initializer_list<value_type> il);     // initializer_list
         // erase
         iterator    erase (const_iterator position);
         iterator    erase (const_iterator first, const_iterator last);
@@ -173,7 +173,7 @@ namespace pocket_stl{
         template <class InputIterator>
         void range_initialize_aux (InputIterator first, InputIterator last, std::true_type);
         template <class Integer>
-        void range_initialize_aux (Integer n, Integer val, std::false_type);
+        void range_initialize_aux (Integer n, const value_type& val, std::false_type);
         void destroy_and_deallocate_all();
     };
 
@@ -498,30 +498,31 @@ namespace pocket_stl{
     template <class InputIterator>
     void 
     vector<T, Alloc>::range_initialize(InputIterator first, InputIterator last){
-        range_initialize_aux(first, last, std::is_integral<InputIterator>::type());
-    }
-
-    template <class T, class Alloc>
-    template <class InputIterator>
-    void 
-    vector<T, Alloc>::range_initialize_aux(InputIterator first, InputIterator last, std::true_type){
+        // range_initialize_aux(first, last, typename std::is_integral<InputIterator>::type());
         allocate_and_copy(first, last);
     }
 
-    template <class T, class Alloc>
-    template <class Integer>
-    void 
-    vector<T, Alloc>::range_initialize_aux(Integer n, Integer val, std::false_type){
-        __start = allocate(static_cast<size_type>(n));
-        uninitialized_fill_n(__start, n, val);
-        __end = __start + n;
-        __end_of_storage = __end;
-    }
+    // template <class T, class Alloc>
+    // template <class InputIterator>
+    // void 
+    // vector<T, Alloc>::range_initialize_aux(InputIterator first, InputIterator last, std::true_type){
+    //     allocate_and_copy(first, last);
+    // }
+
+    // // template <class T, class Alloc>
+    // template <class Integer>
+    // void 
+    // vector<T, Alloc>::range_initialize_aux(Integer n, const value_type& val, std::false_type){
+    //     __start = allocate(static_cast<size_type>(n));
+    //     uninitialized_fill_n(__start, n, val);
+    //     __end = __start + n;
+    //     __end_of_storage = __end;
+    // }
 
     template <class T, class Alloc>
     void 
     vector<T, Alloc>::destroy_and_deallocate_all (){
-        data_allocator::destroy(__start, __end);
+        pocket_stl::destroy(__start, __end);
         data_allocator::deallocate(__start, __end_of_storage - __start);
     }
     

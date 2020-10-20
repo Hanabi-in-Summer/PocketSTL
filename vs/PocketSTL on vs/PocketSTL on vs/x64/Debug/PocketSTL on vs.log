@@ -1,0 +1,23 @@
+﻿  tst.cpp
+G:\program\cpp\PocketSTL\PocketSTL\Test\tst.cpp(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+G:\program\cpp\PocketSTL\PocketSTL\STL\allocator.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+G:\program\cpp\PocketSTL\PocketSTL\STL\iterator.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+G:\program\cpp\PocketSTL\PocketSTL\STL\type_traits.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+G:\program\cpp\PocketSTL\PocketSTL\STL\vector.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+G:\program\cpp\PocketSTL\PocketSTL\STL\uninitialized.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(675,27): error C2440: “static_cast”: 无法从“pocket_stl::allocator<int>”转换为“pocket_stl::allocator<U>”
+          with
+          [
+              U=std::_Container_proxy
+          ]
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(675,1): message : 无构造函数可以接受源类型，或构造函数重载决策不明确
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(672): message : 在编译 类 模板 成员函数“std::vector<int,pocket_stl::allocator<int>>::~vector(void) noexcept”时
+G:\program\cpp\PocketSTL\PocketSTL\Test\tst.cpp(14): message : 查看对正在编译的函数 模板 实例化“std::vector<int,pocket_stl::allocator<int>>::~vector(void) noexcept”的引用
+G:\program\cpp\PocketSTL\PocketSTL\Test\tst.cpp(14): message : 查看对正在编译的 类 模板 实例化“std::vector<int,pocket_stl::allocator<int>>”的引用
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(675,25): error C2530: “_Alproxy”: 必须初始化引用
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(676,1): error C3536: “_Alproxy”: 初始化之前无法使用
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(676,9): error C2672: “_Delete_plain_internal”: 未找到匹配的重载函数
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(676,1): error C2893: 未能使函数模板“void std::_Delete_plain_internal(_Alloc &,_Alloc::value_type *const ) noexcept”专用化
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\xmemory(1026): message : 参见“std::_Delete_plain_internal”的声明
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(676,1): message : 用下列模板参数:
+F:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.27.29110\include\vector(676,1): message : “_Alloc=int”

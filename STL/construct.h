@@ -35,16 +35,6 @@ namespace pocket_stl{
     }
 
     template <class ForwardIterator>
-    void destroy(ForwardIterator first, ForwardIterator last){
-        destroy_aux(first, last, typename ForwardIterator::value_type());
-    }
-
-    template <class ForwardIterator, class T>
-    void destroy_aux(ForwardIterator first, ForwardIterator last, T*){
-        __destroy(first, last, pocket_stl::__type_traits<T>::has_trivial_destructor());
-    }
-
-    template <class ForwardIterator>
     void __destroy(ForwardIterator first, ForwardIterator last, __true_type) { }
 
     template <class ForwardIterator>
@@ -55,6 +45,15 @@ namespace pocket_stl{
         }
     }
 
+    template <class ForwardIterator, class T>
+    void destroy_aux(ForwardIterator first, ForwardIterator last, T*){
+        __destroy(first, last, typename pocket_stl::__type_traits<T>::has_trivial_destructor());
+    }
+
+    template <class ForwardIterator>
+    void destroy(ForwardIterator first, ForwardIterator last){
+        destroy_aux(first, last, pocket_stl::value_type(first));
+    }
 
 }
 

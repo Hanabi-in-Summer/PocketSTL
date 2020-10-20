@@ -41,9 +41,8 @@ namespace pocket_stl{
 
         template <class... Args>
         void            construct(T* p, Args&&... args);                // c++11 construct
-
+        
         void            destroy(pointer p);                             // 对象析构操作
-
     };
 
     template <class T>
@@ -83,7 +82,7 @@ namespace pocket_stl{
 
     template <class T>
     void allocator<T>::construct(pointer p, const_reference x){
-        construct<T, T>(p, x);
+        pocket_stl::construct<T, T>(p, x);
         return;
     }
 
@@ -95,8 +94,9 @@ namespace pocket_stl{
     }
 
     template <class T>
-    void allocator<T>::destroy(pointer p){
-        pocket_stl::destroy(p, pocket_stl::__type_traits<T>::has_trivial_destructor());
+    void allocator<T>::destroy(T* p){
+        pocket_stl::destroy(p, typename pocket_stl::__type_traits<T>::has_trivial_destructor());
+        // pocket_stl::destroy(p, pocket_stl::__true_type());
         return;
     }
 }
