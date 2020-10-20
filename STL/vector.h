@@ -256,13 +256,15 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void 
     vector<T, Alloc>::reserve(size_type n){
-        if (n > max_size()) throw std::length_error("vector : the size requested is larger than the max_size");
+        if (n < max_size()) throw std::length_error("vector : the size requested is larger than the max_size");
         if (n <= capacity()) return;
+        
         pointer new_start = data_allocator.allocate(n);
         pointer new_end = uninitialized_copy(__start, __end, new_start);
         destroy_and_deallocate_all();
         __start = new_start;
-        __end_of_storage = __end = new_end;
+        __end_of_storage = new_start + n;
+        __end = new_end;
     }
 
     //--------------------- Modifiers 函数
