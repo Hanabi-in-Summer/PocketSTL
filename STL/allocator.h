@@ -33,9 +33,9 @@ namespace pocket_stl{
         const_pointer   address(const_reference x) const noexcept;
         size_type       max_size() const noexcept;                      // 返回成功配置的最大量
 
-        static pointer  allocate(size_type n);                          // 配置空间足以存储 n 个对象
-        static void     deallocate(pointer p, size_type n);             // 归还先前配置的空间
-        static void     deallocate(pointer p);
+        pointer         allocate(size_type n);                          // 配置空间足以存储 n 个对象
+        void            deallocate(pointer p, size_type n);             // 归还先前配置的空间
+        void            deallocate(pointer p);
         
         void            construct(pointer p, const_reference x);        // 对象构造操作
 
