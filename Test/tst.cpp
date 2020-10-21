@@ -25,7 +25,18 @@ int main() {
     for(auto& elem : aux){
         cout << elem << ' ';
     }
-    
+
+    aux.push_back(15);
+    cout << endl;
+    for(auto& elem : aux){
+        cout << elem << ' ';
+    }
+    aux.pop_back();
+cout << endl;
+    for(auto& elem : aux){
+        cout << elem << ' ';
+    }
+
     cout << endl;
     cout << endl;
 

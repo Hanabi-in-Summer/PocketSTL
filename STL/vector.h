@@ -153,6 +153,8 @@ namespace pocket_stl{
         // push_back
         void        push_back (const value_type& val);
         void        push_back (value_type&& val);
+        
+        void        pop_back();
         // insert
         iterator    insert (const_iterator position, const value_type& val);                    // single element
         iterator    insert (const_iterator position, size_type n, const value_type& val){       // fill
@@ -168,11 +170,16 @@ namespace pocket_stl{
         iterator    erase (const_iterator position);
         iterator    erase (const_iterator first, const_iterator last);
         void        swap (vector& x);
+        void        clear() noexcept;
         template <class... Args>
         iterator    emplace (const_iterator position, Args&&... args);
         template <class... Args>
         void        emplace_back (Args&&... args);
-    private:
+        /**********************************其它*******************************/
+        allocator_type get_allocator() const noexcept { return allocator_type(); }
+
+        
+       private:
         /***********************内存分配构造工具*****************************/
         void allocate_and_fill (size_type n, const value_type& val);
         template <class InputIterator>
@@ -277,7 +284,7 @@ namespace pocket_stl{
     template <class InputIterator, class>
     void
     vector<T, Alloc>::assign(InputIterator first, InputIterator last){
-        auto len = std::distance(first, last);
+        const size_type len = std::distance(first, last);
         if(len <= size()){
             iterator ptr = __start;
             for (; first < last; ++ptr, ++first){
@@ -392,6 +399,17 @@ namespace pocket_stl{
     }
 
     template <class T, class Alloc>
+    void
+    vector<T, Alloc>::pop_back(){
+        if(!empty()){
+            --__end;
+            data_allocator.destroy(&*__end);
+        }
+        else
+            throw;
+    }
+
+    template <class T, class Alloc>
     typename vector<T, Alloc>::iterator
     vector<T, Alloc>::insert(const_iterator position, const value_type& val){
         return insert(position, size_type(1), val);
@@ -440,6 +458,13 @@ namespace pocket_stl{
     }
 
     template <class T, class Alloc>
+    void
+    vector<T, Alloc>::clear() noexcept{
+        destroy(__start, __end);
+        __end = __start;
+    }
+
+    template <class T, class Alloc>
     template <class... Args>
     typename vector<T, Alloc>::iterator 
     vector<T, Alloc>::emplace (const_iterator position, Args&&... args){
@@ -471,6 +496,7 @@ namespace pocket_stl{
     vector<T, Alloc>::emplace_back(Args&&... args){
         if(__end != __end_of_storage){
             data_allocator.construct(&*__end, std::forward<Args>(args)...);
+            ++__end;
         }
         else{
             reallocate_and_emplace(__end, args...);
@@ -647,6 +673,49 @@ namespace pocket_stl{
             __end_of_storage = __start + len;
             return __start + elems_before_pos;
         }
+    }
+
+    //****************************非成员函数************************************/
+    /****************************relational operator****************************/
+    template <class T, class Alloc>
+    bool operator== (const vector<T,Alloc>& lhs, const vector<T,Alloc>& rhs){
+        if (lhs.size() != rhs.size()) return false;
+        else{
+            for (int i = 0; i < lhs.size(); ++i){
+                if (!(lhs[i] == rhs[i])) return false;
+            }
+            return true;
+        }
+    }
+
+    template <class T, class Alloc>
+    bool operator!= (const vector<T,Alloc>& lhs, const vector<T,Alloc>& rhs){
+        return !(operator==(lhs, rhs));
+    }
+
+    template <class T, class Alloc>
+    bool operator<  (const vector<T,Alloc>& lhs, const vector<T,Alloc>& rhs){
+        return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+
+    template <class T, class Alloc>
+    bool operator>  (const vector<T,Alloc>& lhs, const vector<T,Alloc>& rhs){
+        return rhs < lhs;
+    }
+
+    template <class T, class Alloc>
+    bool operator<= (const vector<T,Alloc>& lhs, const vector<T,Alloc>& rhs){
+        return !(rhs < lhs);
+    }
+
+    template <class T, class Alloc>
+    bool operator>= (const vector<T,Alloc>& lhs, const vector<T,Alloc>& rhs){
+        return !(lhs < rhs);
+    }
+
+    template <class T, class Alloc>
+    void swap (vector<T,Alloc>& x, vector<T,Alloc>& y){
+        return x.swap(y);
     }
 
 } // namespace
