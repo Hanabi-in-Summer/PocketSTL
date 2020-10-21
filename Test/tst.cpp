@@ -4,7 +4,7 @@
 #include <vector>
 
 /*
-** allocator 配不上标准接口
+** 
 ** 
 */
 
@@ -17,12 +17,18 @@ int main() {
     pocket_stl::vector<int> tst{1, 2, 3, 4, 5};
     pocket_stl::vector<int> aux(3, 88);
 
-    cout << tst.capacity() << endl;
-    // cout << tst.max_size() << endl;
-    tst.reserve(100);
-    cout << tst.capacity() << endl;
-    // tst.shrink_to_fit();
-    // cout << tst.capacity() << endl;
+    for(auto& elem : tst){
+        cout << elem << ' ';
+    }
+    cout << endl;
+    aux.assign(tst.begin(), tst.begin() + 1);
+    for(auto& elem : aux){
+        cout << elem << ' ';
+    }
+    
+    cout << endl;
+    cout << endl;
+
 
     return 0;
 }

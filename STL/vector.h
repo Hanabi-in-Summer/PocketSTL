@@ -168,12 +168,17 @@ namespace pocket_stl{
         iterator    erase (const_iterator position);
         iterator    erase (const_iterator first, const_iterator last);
         void        swap (vector& x);
-
+        template <class... Args>
+        iterator    emplace (const_iterator position, Args&&... args);
+        template <class... Args>
+        void        emplace_back (Args&&... args);
     private:
         /***********************内存分配构造工具*****************************/
         void allocate_and_fill (size_type n, const value_type& val);
         template <class InputIterator>
         void allocate_and_copy (InputIterator first, InputIterator last);
+        template <class... Args>
+        void reallocate_and_emplace (iterator position, Args... arg);
         template <class InputIterator>
         void range_initialize (InputIterator first, InputIterator last);
         template <class InputIterator>
@@ -256,7 +261,7 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void 
     vector<T, Alloc>::reserve(size_type n){
-        if (n < max_size()) throw std::length_error("vector : the size requested is larger than the max_size");
+        if (n > max_size()) throw std::length_error("vector : the size requested is larger than the max_size");
         if (n <= capacity()) return;
         
         pointer new_start = data_allocator.allocate(n);
@@ -354,9 +359,48 @@ namespace pocket_stl{
     }
 
     template <class T, class Alloc>
+    void
+    vector<T, Alloc>::push_back(const value_type& val){
+        if(__end != __end_of_storage){
+            data_allocator.construct(&*__end, val);
+            ++__end;
+        }
+        else{            
+            const size_type new_size = 2 * size();
+            iterator new_start = data_allocator.allocate(new_size);
+            iterator new_end = new_start;
+            try{
+                new_end = uninitialized_copy(__start, __end, new_start);
+                data_allocator.construct(&*new_end, val);
+                ++new_end;
+            }
+            catch(...){
+                destroy(new_start, new_end);
+                data_allocator.deallocate(new_start, new_end - new_start);
+                throw;
+            }
+            __start = new_start;
+            __end = new_end;
+            __end_of_storage = __start + new_size;
+        }
+    }
+
+    template <class T, class Alloc>
+    void
+    vector<T, Alloc>::push_back(value_type&& val){
+        emplace_back(std::move(val));
+    }
+
+    template <class T, class Alloc>
     typename vector<T, Alloc>::iterator
     vector<T, Alloc>::insert(const_iterator position, const value_type& val){
         return insert(position, size_type(1), val);
+    }
+
+    template <class T, class Alloc>
+    typename vector<T, Alloc>::iterator
+    vector<T, Alloc>::insert(const_iterator position, value_type&& val){
+        return emplace(position, std::move(val));
     }
 
     template <class T, class Alloc>
@@ -395,6 +439,44 @@ namespace pocket_stl{
         }
     }
 
+    template <class T, class Alloc>
+    template <class... Args>
+    typename vector<T, Alloc>::iterator 
+    vector<T, Alloc>::emplace (const_iterator position, Args&&... args){
+        const size_type elems_before_pos = position - __start;
+        iterator pos_copy = __start + elems_before_pos;
+        if(__end_of_storage != __end){
+            if(position == __end){
+                data_allocator.construct(position, std::forward<Args>(args)...);
+                __end++;
+                return pos_copy;
+            }
+            else{
+                data_allocator.construct(&*__end, *(__end - 1));
+                std::copy_backward(pos_copy, __end - 1, __end);
+                *position = vaule_type(std::forward<Args>(args)...);
+                __end++;
+                return pos_copy;
+            }
+        }
+        else{
+            reallocate_and_emplace(pos_copy, args...);
+        }
+        return __start + elems_before_pos;
+    }
+
+    template <class T, class Alloc>
+    template <class... Args>
+    void
+    vector<T, Alloc>::emplace_back(Args&&... args){
+        if(__end != __end_of_storage){
+            data_allocator.construct(&*__end, std::forward<Args>(args)...);
+        }
+        else{
+            reallocate_and_emplace(__end, args...);
+        }
+    }
+
     // -------------------- 内存分配工具
     template <class T, class Alloc>
     void 
@@ -413,6 +495,30 @@ namespace pocket_stl{
         __end = uninitialized_copy(first, last, __start);
         __end_of_storage = __end;
     }
+
+    template <class T, class Alloc>
+    template <class... Args>
+    void
+    vector<T, Alloc>::reallocate_and_emplace (iterator position, Args... arg){
+        const size_type new_size = 2 * size() < max_size() ? 2 * size() : size() + 1;
+        iterator new_start = data_allocator.allocate(new_size);
+        iterator new_end = new_start;
+        try{
+            new_end = uninitialized_copy(__start, position, new_start);
+            data_allocator.construct(&*new_end, std::forward<Args>(arg)...);
+            new_end++;
+            new_end = uninitialized_copy(position, __end, new_end);
+        }
+        catch(...){
+            data_allocator.deallocate(new_start, new_end - new_start);
+            throw;
+        }
+        destroy_and_deallocate_all();
+        __start = new_start;
+        __end = new_end;
+        __end_of_storage = __start + new_size;
+    }
+
 
     template <class T, class Alloc>
     template <class InputIterator>
@@ -521,7 +627,7 @@ namespace pocket_stl{
         }
         else{
             // 需要重新分配空间
-            const size_type pos_before = position - __start;
+            const size_type elems_before_pos = position - __start;
             const size_type old_size = size();
             const size_type len = old_size + std::max(old_size, n);
             iterator new_start = data_allocator.allocate(len);
@@ -533,13 +639,13 @@ namespace pocket_stl{
             }
             catch(...){
                 destroy(new_start, new_end);
-                data_allocator.deallocate(new_start, new_end -  new_start);
+                data_allocator.deallocate(new_start, new_end - new_start);
                 throw;
             }
             __start = new_start;
             __end = new_end;
             __end_of_storage = __start + len;
-            return __start + pos_before;
+            return __start + elems_before_pos;
         }
     }
 
