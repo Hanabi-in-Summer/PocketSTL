@@ -65,9 +65,7 @@ namespace pocket_stl{
         }
 
         // **** range ctor
-        // 判断 InputIterator 是否为整型
-        // 整型则调用 uninitialized_fill
-        // 非整形则调用 uninitialized_copy
+        // 判断 InputIterator 是否为非整型，防止匹配错误
         template <class InputIterator, class = typename std::enable_if<!std::is_integral<InputIterator>::value>::type> // 元编程 enable_if
         vector(InputIterator first, InputIterator last){
             range_initialize(first, last);
