@@ -14,12 +14,13 @@ using std::vector;
 
 int main() {
     // vector<int, pocket_stl::allocator<int>> tst;
-    pocket_stl::vector<int> tst{1, 2, 3, 4, 5};
+    const pocket_stl::vector<int> tst{1, 2, 3, 4, 5};
     pocket_stl::vector<int> aux(3, 88);
 
     for(auto& elem : tst){
         cout << elem << ' ';
     }
+    
     cout << endl;
     aux.assign(tst.begin(), tst.begin() + 1);
     for(auto& elem : aux){
@@ -38,6 +39,7 @@ cout << endl;
     }
 
     cout << endl;
+    cout << sizeof(tst);
     cout << endl;
 
 

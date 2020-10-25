@@ -36,22 +36,23 @@ namespace pocket_stl{
         
         iterator __start;
         iterator __end;
-        iterator __end_of_storage;
-        allocator_type data_allocator;
-
+        // iterator __end_of_storage;
+        compressed_pair<iterator, allocator_type> __end_cap;
+        
+        
     public:
         /***************ctor 、 copy_ctor 、 move_ctor 、 dtor 、 operator=*****************/
         // **** default ctor
         vector() noexcept{
             try{
-                __start = data_allocator.allocate(16);
+                __start = __end_cap.allocate(16);
                 __end = __start;
-                __end_of_storage = __start + 16;
+                __end_cap.data = __start + 16;
             }
             catch(...){
                 __start = nullptr;
                 __end = nullptr;
-                __end_of_storage = nullptr;
+                __end_cap.data = nullptr;
             }
         }
 
@@ -78,10 +79,10 @@ namespace pocket_stl{
 
         // **** move ctor
         vector(vector&& x) noexcept
-            : __start(x.__start), __end(x.__end), __end_of_storage(x.__end_of_storage){
+            : __start(x.__start), __end(x.__end), __end_cap(x.__end_cap.data){
             x.__start = nullptr;
             x.__end = nullptr;
-            x.__end_of_storage = nullptr;
+            x.__end_cap.data = nullptr;
         }
 
         // **** initializer list
@@ -121,7 +122,7 @@ namespace pocket_stl{
         size_type   max_size() const noexcept { return size_type(-1) / sizeof(value_type); }
         void        resize(size_type n) { return resize(n, value_type()); }
         void        resize(size_type n, const value_type& val);
-        size_type   capacity() const noexcept { return static_cast<size_type>(__end_of_storage - __start); }
+        size_type   capacity() const noexcept { return static_cast<size_type>(__end_cap.data - __start); }
         bool        empty() const noexcept { return __start == __end; }
         void        reserve (size_type n);
         void        shrink_to_fit() { vector tmp(*this); swap(tmp); }
@@ -219,7 +220,8 @@ namespace pocket_stl{
             }
             else if(len < size()){
                 std::copy(x.begin(), x.end(), __start);
-                data_allocator.destroy(__start + len, __end);
+                // data_allocator.destroy(__start + len, __end);
+                __end_cap.destroy(__start + len, __end);
                 __end = __start + len;
             }
         }
@@ -232,8 +234,8 @@ namespace pocket_stl{
         destroy_and_deallocate_all();
         __start = x.__start;
         __end = x.__end;
-        __end_of_storage = x.__end_of_storage;
-        x.__start = x.__end = x.__end_of_storage = nullptr;
+        __end_cap.data = x.__end_cap.data;
+        x.__start = x.__end = x.__end_cap.data = nullptr;
         return *this;
     }
 
@@ -269,11 +271,12 @@ namespace pocket_stl{
         if (n > max_size()) throw std::length_error("vector : the size requested is larger than the max_size");
         if (n <= capacity()) return;
         
-        pointer new_start = data_allocator.allocate(n);
+        // pointer new_start = data_allocator.allocate(n);
+        pointer new_start = __end_cap.allocate(n);
         pointer new_end = uninitialized_copy(__start, __end, new_start);
         destroy_and_deallocate_all();
         __start = new_start;
-        __end_of_storage = new_start + n;
+        __end_cap.data = new_start + n;
         __end = new_end;
     }
 
@@ -290,7 +293,8 @@ namespace pocket_stl{
             }
             auto new_end = ptr;
             for (; ptr < __end; ++ptr){
-                data_allocator.destroy(ptr);
+                // data_allocator.destroy(ptr);
+                __end_cap.destroy(ptr);
             }
             __end = new_end;
         }
@@ -316,7 +320,8 @@ namespace pocket_stl{
                 *ptr = val;
             }
             for (; ptr < __end; ++ptr){
-                data_allocator.destroy(ptr);
+                // data_allocator.destroy(ptr);
+                __end_cap.destroy(ptr);
             }
             __end = __start + n;
         }
@@ -345,7 +350,8 @@ namespace pocket_stl{
                 *ptr = *itr_il;
             }
             for (; ptr < __end; ++ptr){
-                data_allocator.destroy(ptr);
+                // data_allocator.destroy(ptr);
+                __end_cap.destroy(ptr);
             }
             __end = __start + il.size();
         }
@@ -366,27 +372,31 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void
     vector<T, Alloc>::push_back(const value_type& val){
-        if(__end != __end_of_storage){
-            data_allocator.construct(&*__end, val);
+        if(__end != __end_cap.data){
+            // data_allocator.construct(&*__end, val);
+            __end_cap.construct(&*__end, val);
             ++__end;
         }
         else{            
             const size_type new_size = 2 * size();
-            iterator new_start = data_allocator.allocate(new_size);
+            // iterator new_start = data_allocator.allocate(new_size);
+            iterator new_start = __end_cap.allocate(new_size);
             iterator new_end = new_start;
             try{
                 new_end = uninitialized_copy(__start, __end, new_start);
-                data_allocator.construct(&*new_end, val);
+                // data_allocator.construct(&*new_end, val);
+                __end_cap.construct(&*new_end, val);
                 ++new_end;
             }
             catch(...){
                 destroy(new_start, new_end);
-                data_allocator.deallocate(new_start, new_end - new_start);
+                // data_allocator.deallocate(new_start, new_end - new_start);
+                __end_cap.deallocate(new_start, new_end - new_start);
                 throw;
             }
             __start = new_start;
             __end = new_end;
-            __end_of_storage = __start + new_size;
+            __end_cap.data = __start + new_size;
         }
     }
 
@@ -401,7 +411,8 @@ namespace pocket_stl{
     vector<T, Alloc>::pop_back(){
         if(!empty()){
             --__end;
-            data_allocator.destroy(&*__end);
+            // data_allocator.destroy(&*__end);
+            __end_cap.destroy(&*__end);
         }
         else
             throw;
@@ -427,7 +438,8 @@ namespace pocket_stl{
             std::copy(pos_tmp + 1, __end, pos_tmp);
         }
         --__end;
-        data_allocator.destroy(__end);
+        // data_allocator.destroy(__end);
+        __end_cap.destroy(__end);
         return pos_tmp;
     }
 
@@ -451,7 +463,7 @@ namespace pocket_stl{
         if(this != &x){             // 暂时调用 std::swap
             std::swap(__start, x.__start);
             std::swap(__end, x.__end);
-            std::swap(__end_of_storage, x.__end_of_storage);
+            std::swap(__end_cap.data, x.__end_cap.data);
         }
     }
 
@@ -468,14 +480,16 @@ namespace pocket_stl{
     vector<T, Alloc>::emplace (const_iterator position, Args&&... args){
         const size_type elems_before_pos = position - __start;
         iterator pos_copy = __start + elems_before_pos;
-        if(__end_of_storage != __end){
+        if(__end_cap.data != __end){
             if(position == __end){
-                data_allocator.construct(position, std::forward<Args>(args)...);
+                // data_allocator.construct(position, std::forward<Args>(args)...);
+                __end_cap.construct(position, std::forward<Args>(args)...);
                 __end++;
                 return pos_copy;
             }
             else{
-                data_allocator.construct(&*__end, *(__end - 1));
+                // data_allocator.construct(&*__end, *(__end - 1));
+                __end_cap.construct(&*__end, *(__end - 1));
                 std::copy_backward(pos_copy, __end - 1, __end);
                 *position = vaule_type(std::forward<Args>(args)...);
                 __end++;
@@ -492,8 +506,9 @@ namespace pocket_stl{
     template <class... Args>
     void
     vector<T, Alloc>::emplace_back(Args&&... args){
-        if(__end != __end_of_storage){
-            data_allocator.construct(&*__end, std::forward<Args>(args)...);
+        if(__end != __end_cap.data){
+            // data_allocator.construct(&*__end, std::forward<Args>(args)...);
+            __end_cap.construct(&*__end, std::forward<Args>(args)...);
             ++__end;
         }
         else{
@@ -505,19 +520,21 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void 
     vector<T, Alloc>::allocate_and_fill(size_type n, const value_type& val) {
-        __start = data_allocator.allocate(n);
+        // __start = data_allocator.allocate(n);
+        __start = __end_cap.allocate(n);
         __end = __start + n;
         uninitialized_fill_n(__start, n, val);
-        __end_of_storage = __end;
+        __end_cap = __end;
     }
 
     template <class T, class Alloc>
     template <class InputIterator>
     void 
     vector<T, Alloc>::allocate_and_copy(InputIterator first, InputIterator last){
-        __start = data_allocator.allocate(last - first);
+        // __start = data_allocator.allocate(last - first);
+        __start = __end_cap.allocate(last - first);
         __end = uninitialized_copy(first, last, __start);
-        __end_of_storage = __end;
+        __end_cap = __end;
     }
 
     template <class T, class Alloc>
@@ -525,22 +542,25 @@ namespace pocket_stl{
     void
     vector<T, Alloc>::reallocate_and_emplace (iterator position, Args... arg){
         const size_type new_size = 2 * size() < max_size() ? 2 * size() : size() + 1;
-        iterator new_start = data_allocator.allocate(new_size);
+        // iterator new_start = data_allocator.allocate(new_size);
+        iterator new_start = __end_cap.allocate(new_size);
         iterator new_end = new_start;
         try{
             new_end = uninitialized_copy(__start, position, new_start);
-            data_allocator.construct(&*new_end, std::forward<Args>(arg)...);
+            // data_allocator.construct(&*new_end, std::forward<Args>(arg)...);
+            __end_cap.construct(&*new_end, std::forward<Args>(arg)...);
             new_end++;
             new_end = uninitialized_copy(position, __end, new_end);
         }
         catch(...){
-            data_allocator.deallocate(new_start, new_end - new_start);
+            // data_allocator.deallocate(new_start, new_end - new_start);
+            __end_cap.deallocate(new_start, new_end - new_start);
             throw;
         }
         destroy_and_deallocate_all();
         __start = new_start;
         __end = new_end;
-        __end_of_storage = __start + new_size;
+        __end_cap.data = __start + new_size;
     }
 
 
@@ -573,7 +593,8 @@ namespace pocket_stl{
     void 
     vector<T, Alloc>::destroy_and_deallocate_all (){
         pocket_stl::destroy(__start, __end);
-        data_allocator.deallocate(__start, __end_of_storage - __start);
+        // data_allocator.deallocate(__start, __end_of_storage - __start);
+        __end_cap.deallocate(__start, __end_cap.data - __start);
     }
     
     // -------------------- 其他辅助函数
@@ -582,7 +603,7 @@ namespace pocket_stl{
     vector<T, Alloc>::insert_fill(iterator position, size_type n, const value_type& val){
         if(n != 0){
             const size_type pos_before = position - __start;
-            if(size_type(__end_of_storage - __end) >= n){
+            if(size_type(__end_cap.data - __end) >= n){
                 const size_type elems_after = __end - position;
                 iterator old_end = __end;
                 if(elems_after > n){
@@ -603,7 +624,8 @@ namespace pocket_stl{
                 // 需要分配新的内存
                 const size_type old_size = size();
                 const size_type len = old_size + std::max(old_size, n);
-                iterator new_start = data_allocator.allocate(len);
+                // iterator new_start = data_allocator.allocate(len);
+                iterator new_start = __end_cap.allocate(len);
                 iterator new_end = new_start;
                 try{
                     new_end = uninitialized_copy(__start, position, new_start);
@@ -612,13 +634,14 @@ namespace pocket_stl{
                 }
                 catch(...){
                     destroy(new_start, new_end);
-                    data_allocator.deallocate(new_start, new_end - new_start);
+                    // data_allocator.deallocate(new_start, new_end - new_start);
+                    __end_cap.deallocate(new_start, new_end - new_start);
                     throw;
                 }
                 destroy_and_deallocate_all();
                 __start = new_start;
                 __end = new_end;
-                __end_of_storage = __start + len;
+                __end_cap.data = __start + len;
             }
             return __start + pos_before;
         }
@@ -631,7 +654,7 @@ namespace pocket_stl{
         if (first == last) return position;
         const size_type n = std::distance(first, last);
         // const size_type pos_before = position - __start;
-        if (size_type(__end_of_storage - __end) > n){
+        if (size_type(__end_cap.data - __end) > n){
             const size_type elems_after = __end - position;
             iterator old_end = __end;
             if (elems_after > n){
@@ -654,7 +677,8 @@ namespace pocket_stl{
             const size_type elems_before_pos = position - __start;
             const size_type old_size = size();
             const size_type len = old_size + std::max(old_size, n);
-            iterator new_start = data_allocator.allocate(len);
+            // iterator new_start = data_allocator.allocate(len);
+            iterator new_start = __end_cap.allocate(len);
             iterator new_end = new_start;
             try{
                 new_end = uninitialized_copy(__start, position, new_start);
@@ -663,12 +687,13 @@ namespace pocket_stl{
             }
             catch(...){
                 destroy(new_start, new_end);
-                data_allocator.deallocate(new_start, new_end - new_start);
+                // data_allocator.deallocate(new_start, new_end - new_start);
+                __end_cap.deallocate(new_start, new_end - new_start);
                 throw;
             }
             __start = new_start;
             __end = new_end;
-            __end_of_storage = __start + len;
+            __end_cap.data = __start + len;
             return __start + elems_before_pos;
         }
     }

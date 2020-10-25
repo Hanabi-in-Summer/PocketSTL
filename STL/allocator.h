@@ -45,6 +45,18 @@ namespace pocket_stl{
         void            destroy(pointer p);                             // 对象析构操作
     };
 
+    // 用以压缩 allocator 实例化所占用的空间
+    template <class T, class Alloc>
+    class compressed_pair : public Alloc{
+    public:
+        typedef Alloc allocator_type;
+        typedef T value_type;
+        T data;
+        compressed_pair() = default;
+        compressed_pair(T x) : data(x){}
+        operator T() { return data; }
+    };
+
     template <class T>
     typename allocator<T>::pointer 
     allocator<T>::address(typename allocator<T>::reference x)const noexcept{
