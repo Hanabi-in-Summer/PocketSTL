@@ -144,9 +144,14 @@ namespace pocket_stl{
         using list_node             = __list_node<T>;
         using link_type             = list_node*;
         using node_allocator_type   = pocket_stl::allocator<list_node>;
-        link_type           __node_ptr;
-        node_allocator_type node_allocator;
-        allocator_type      data_allocator;
+        // link_type           __node_ptr;
+        compressed_pair<link_type, allocator_type> data_allocator ;         // 保存 __node_ptr, 指向头尾节点
+        compressed_pair<size_type, node_allocator_type> node_allocator;     // 保存 size, 表示 list 的长度
+
+        link_type& __node_ptr() { return data_allocator.data; }
+        size_type& __size() { return node_allocator.data; }
+        // node_allocator_type node_allocator;
+        // allocator_type      data_allocator;
 
     public:
         /***************ctor 、 copy_ctor 、 move_ctor 、 dtor 、 operator=*****************/
@@ -160,7 +165,10 @@ namespace pocket_stl{
             allocate_and_fill(n, val);
         }
         // **** range ctor
-        template <class InputIterator>
+        template <class InputIterator, 
+                    class std::enable_if<
+                        !std::is_integral<InputIterator>::value
+                    >::type>
         list(InputIterator first, InputIterator last);
         // **** copy ctor
         list(const list& x);
@@ -173,13 +181,13 @@ namespace pocket_stl{
 
     private:
         /***********************内存分配构造工具*****************************/
-        link_type get_node() { return node_allocator.allcoate(1); }     // 配置一个节点并传回
-        void put_node(link_type p) { node_allocator.deallocate(p); }    // 释放一个节点
+        link_type   get_node() { return node_allocator.allcoate(1); }           // 配置一个节点并传回
+        void        put_node(link_type p) { node_allocator.deallocate(p); }     // 释放一个节点
         template <class... Args>
-        link_type create_node(Args&&... args);
-        void destroy_node(link_type p);
-        void empty_initialize();                                        // 产生一个空链表
-        void allocate_and_fill(size_type n, const value_type& val);
+        link_type   create_node(Args&&... args);
+        void        destroy_node(link_type p);
+        void        empty_initialize();                                         // 产生一个空链表
+        void        allocate_and_fill(size_type n, const value_type& val);
     };
 
     /*-------------------------------部分函数定义------------------------------------*/
@@ -211,36 +219,40 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void
     list<T, Alloc>::empty_initialize(){
-        __node_ptr = get_node();
-        __node_ptr->next = __node_ptr;
-        __node_ptr->prev = __node_ptr;
+        __node_ptr() = get_node();
+        __node_ptr()->next = __node_ptr();
+        __node_ptr()->prev = __node_ptr();
+        __size() = 0;
     }
 
     template <class T, class Alloc>
     void
     list<T, Alloc>::allocate_and_fill(size_type n, const value_type& val){
-        __node_ptr = get_node();
-        link_type aux = __node_ptr;
+        __node_ptr() = get_node();
+        __size() = 0;
+        link_type aux = __node_ptr();
         try{
             for (; n > 0; --n){
                 link_type node_tmp_p = get_node();
                 data_allocator.construct(&*(node_tmp_p->data), val);
                 node_tmp_p->prev = aux;
                 aux = aux->next = node_tmp_p;
+                ++size();
             }
-            __node_ptr->prev = aux;
-            aux->next = __node_ptr;
+            __node_ptr()->prev = aux;
+            aux->next = __node_ptr();
         }
         catch(...){
-            link_type next = __node_ptr;
-            link_type node_to_dtr = __node_ptr;
+            link_type next = __node_ptr();
+            link_type node_to_dtr = __node_ptr();
             while(next != aux){
                 next = next->next;
                 destroy_node(node_to_dtr);
                 node_to_dtr = next;
             }
             destroy_node(aux);
-            __node_ptr = nullptr;
+            __node_ptr() = nullptr;
+            __size() = 0;
             throw;
         }
     }
