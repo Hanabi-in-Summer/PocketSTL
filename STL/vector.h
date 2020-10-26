@@ -221,10 +221,11 @@ namespace pocket_stl{
             else if(len < size()){
                 std::copy(x.begin(), x.end(), __start);
                 // data_allocator.destroy(__start + len, __end);
-                __end_cap.destroy(__start + len, __end);
+                destroy(__start + len, __end);
                 __end = __start + len;
             }
         }
+        return *this;
     }
 
     //move
