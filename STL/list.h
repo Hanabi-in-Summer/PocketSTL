@@ -42,7 +42,7 @@ namespace pocket_stl{
         link_type node_ptr;         // iterator 占用一个指针的空间
 
         // ctor
-        __list_iterator() = default;
+        __list_iterator() : node_ptr(nullptr) { };
         __list_iterator(link_type x) : node_ptr(x) {}
         __list_iterator(const iterator& x) : node_ptr(x.node_ptr) {}
 
@@ -56,7 +56,7 @@ namespace pocket_stl{
             return *this;
         }
         
-        self& operator++(int){                      // 后置版++
+        self operator++(int){                      // 后置版++
             self tmp = *this;
             ++*this;
             return tmp;
@@ -66,7 +66,7 @@ namespace pocket_stl{
             node_ptr = (*node_ptr).prev;
             return *this;
         }
-        self& operator--(int){
+        self operator--(int){
             self tmp = *this;
             --*this;
             return tmp;
@@ -92,7 +92,7 @@ namespace pocket_stl{
         link_type node_ptr;         // iterator 占用一个指针的空间
 
         // ctor
-        __list_const_iterator() = default;
+        __list_const_iterator() : node_ptr(nullptr) { };
         __list_const_iterator(link_type x) : node_ptr(x) {}
         __list_const_iterator(const iterator& x) : node_ptr(x.node_ptr) {}
         __list_const_iterator(const __list_iterator<T>& x) : node_ptr(x.node_ptr) {}
@@ -107,7 +107,7 @@ namespace pocket_stl{
             return *this;
         }
         
-        self& operator++(int){                      // 后置版++
+        self operator++(int){                      // 后置版++
             self tmp = *this;
             ++*this;
             return tmp;
@@ -117,7 +117,7 @@ namespace pocket_stl{
             node_ptr = (*node_ptr).prev;
             return *this;
         }
-        self& operator--(int){
+        self operator--(int){
             self tmp = *this;
             --*this;
             return tmp;
@@ -186,26 +186,70 @@ namespace pocket_stl{
         list& operator= (const list& x);
         list& operator= (list&& x);
         list& operator= (std::initializer_list<value_type> il);
+
+    public:
         /*************** iterator functions *****************/
-        iterator        begin() noexcept { return __node_ptr()->next; }
-        const_iterator  begin() const noexcept { return __node_ptr()->next; }
-        iterator        end() noexcept { return __node_ptr(); }
-        const_iterator  end() const noexcept { return __node_ptr(); }
+        iterator                begin() noexcept { return __node_ptr()->next; }
+        const_iterator          begin() const noexcept { return __node_ptr()->next; }
+        iterator                end() noexcept { return __node_ptr(); }
+        const_iterator          end() const noexcept { return __node_ptr(); }
+        reverse_iterator        rbegin() noexcept { return reverse_iterator(end()); }
+        const_reverse_iterator  rbegin() const noexcept { return reverse_iterator(end()); }
+        reverse_iterator        rend() noexcept { return reverse_iterator(begin()); }
+        const_reverse_iterator  rend() const noexcept { return reverse_iterator(begin()); }
+        const_iterator          cbegin() const noexcept { return begin(); }
+        const_iterator          cend() const noexcept { return end(); }
+        const_reverse_iterator  crbegin() const noexcept { return reverse_iterator(end()); }
+        const_reverse_iterator  crend() const noexcept { return reverse_iterator(begin()); }
 
-       public:
+        /*************** capacity functions *****************/
+        bool            empty() const noexcept { return __node_ptr()->next == __node_ptr(); }
+        size_type       size() const noexcept { return node_allocator.data; }
+        size_type       max_size() const noexcept { return static_cast<size_type>(-1); }
+        /***************** element access *******************/
+        reference       front() { return *begin(); }
+        const_reference front() const { return *begin(); }
+        reference       back() { return *end(); }
+        const_reference back() const { return *end(); }
+
+    public:
         /************************ modifiers ***********************/
-        // insert
-        iterator insert(const_iterator position, const value_type& val) { return insert_one(position, val); }
-        iterator insert(const_iterator position, size_type n, const value_type& val) { return insert_fill(position, n, val); }
-        template <class InputIterator>
-        iterator insert(const_iterator position, InputIterator first, InputIterator last) { return insert_copy(position, first, last); }
-        iterator insert(const_iterator position, value_type&& val);
-        iterator insert(const_iterator position, std::initializer_list<value_type> il) { return insert_copy(il.begin(), il.end()); }
-        // erase
-        iterator erase (const_iterator position);
-        iterator erase (const_iterator first, const_iterator last);
+        // assign
+        template <class InputIterator, class std::enable_if<
+                                            !std::is_integral<InputIterator>::value>::type>
+        void        assign(InputIterator first, InputIterator last) { return copy_aux(first, last); } 
+        void        assign(size_type n, const value_type& val);
+        void        assign(std::initializer_list<value_type> il) { return copy_aux(il.begin(), il.end()); }
 
-    private:
+        template <class... Args>
+        void        emplace_front(Args&&... args) { emplace(begin(), std::forward<Args>(args)...); }
+        void        push_front(const value_type& val) { insert(begin(), val); }
+        void        push_front(value_type&& val) { insert(begin(), std::move(val)); }
+        void        pop_front() { erase(begin()); }
+        template <class... Args>
+        void        emplace_back(Args&&... args) { emplace(end(), std::forward<Args>(args)...); }
+        void        push_back(const value_type& val) { insert(end(), val); }
+        void        push_back(value_type&& val) { insert(end(), std::move(val)); }
+        void        pop_back() { erase(end()); }
+        template <class... Args>
+        iterator    emplace (const_iterator position, Args&&... args);
+        // insert
+        iterator    insert(const_iterator position, const value_type& val) { return insert_one(position, val); }
+        iterator    insert(const_iterator position, size_type n, const value_type& val) { return insert_fill(position, n, val); }
+        template <class InputIterator, class std::enable_if<
+                                            !std::is_integral<InputIterator>::value>::type>
+        iterator    insert(const_iterator position, InputIterator first, InputIterator last) { return insert_copy(position, first, last); } 
+        iterator    insert(const_iterator position, value_type&& val);
+        iterator    insert(const_iterator position, std::initializer_list<value_type> il) { return insert_copy(il.begin(), il.end()); }
+        // erase
+        iterator    erase(const_iterator position);
+        iterator    erase(const_iterator first, const_iterator last);
+        void        swap (list& x);
+        void        resize(size_type n) { resize(n, value_type()); }
+        void        resize (size_type n, const value_type& val);
+        void        clear() noexcept { erase(begin(), end()); }
+
+       private:
         /***********************辅助工具*****************************/
         link_type   get_node() { return node_allocator.allocate(1); }           // 配置一个节点并传回
         void        put_node(link_type p) { node_allocator.deallocate(p); }     // 释放一个节点
@@ -223,6 +267,7 @@ namespace pocket_stl{
         template <class InputIterator>
         iterator    insert_copy(const_iterator position, InputIterator first, InputIterator last);
         void        link_node_back(iterator pos, link_type node);
+        void        link_node(link_type front, link_type back);
         template <class InputIterator>
         void        copy_aux(InputIterator first, InputIterator last);
     };
@@ -240,12 +285,99 @@ namespace pocket_stl{
 
     // -------------------- modifiers
     template <class T, class Alloc>
+    void
+    list<T, Alloc>::assign(size_type n, const value_type& val){
+        if (n == 0) return;
+        iterator cur = begin();
+        for (; cur != end() && n != 0; ++cur, --n){
+            *cur = val;
+        }
+        if(cur != end()){
+            erase(cur, end());
+        }
+        else if(n != 0){
+            insert(cur, n, val);
+        }
+    }
+
+    template <class T, class Alloc>
+    template <class... Args>
+    typename list<T, Alloc>::iterator
+    list<T, Alloc>::emplace(const_iterator position, Args&&... args){
+        link_type node = create_node(std::forward<Args>(args)...);
+        link_node_back(position.node_ptr->prev, node);
+        __size()++;
+        return node;
+    }
+
+    template <class T, class Alloc>
     typename list<T, Alloc>::iterator
     list<T, Alloc>::insert(const_iterator position, value_type&& val){
         link_type node = create_node(std::move(val));
         link_node_back(position.node_ptr->prev, node);
         __size()++;
         return node;
+    }
+
+    template <class T, class Alloc>
+    typename list<T, Alloc>::iterator
+    list<T, Alloc>::erase(const_iterator position){
+        if (position == end()) throw;
+        iterator prev(position.node_ptr->prev);
+        iterator next(position.node_ptr->next);
+        link_node_back(prev, next);
+        destroy_node(position);
+        --__size();
+        return next;
+    }
+
+    template <class T, class Alloc>
+    typename list<T, Alloc>::iterator
+    list<T, Alloc>::erase(const_iterator first, const_iterator last){
+        iterator prev = first.node_ptr->prev;
+        iterator node_to_dty((first).node_ptr);
+        // for (; first != last; ++first){
+        //     std::cout << *node_to_dty;
+        //     destroy_node(node_to_dty);
+        //     node_to_dty.node_ptr = first.node_ptr;
+        //     --__size();
+        //     std::cout << 'a';
+        // }
+        while ( first != last){
+            ++first;
+            destroy_node(node_to_dty);
+            node_to_dty.node_ptr = first.node_ptr;
+            --__size();
+        }
+        link_node(prev.node_ptr, last.node_ptr);
+        return last.node_ptr;
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::swap(list& x){
+        link_type tmp = x.__node_ptr();
+        x.__node_ptr() = __node_ptr();
+        __node_ptr() = tmp;
+        __size() ^= x.__size();
+        x.size() ^= __size();
+        __size() ^= x.__size();
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::resize(size_type n, const value_type& val){
+        if (__size() == n) return;
+        else if(__size() > n){
+            iterator start = end();
+            for (; n != __size(); ++n){
+                --start;
+            }
+            erase(start, end());
+        }
+        else{
+            insert(end(), n - __size(), val);
+        }
     }
 
     // -------------------- 辅助工具
@@ -401,7 +533,7 @@ namespace pocket_stl{
     template <class T, class Alloc>
     typename list<T, Alloc>::iterator
     list<T, Alloc>::insert_fill(const_iterator pos, size_type n, const value_type& val){
-        if (n == 0) return iterator(pos.node_ptr);
+        if (n == 0) return iterator();
         else if(n == 1)
             return insert_one(pos, val);
         iterator start(pos.node_ptr->prev);
@@ -416,9 +548,12 @@ namespace pocket_stl{
             }
             cur.node_ptr->next = end.node_ptr;
             end.node_ptr->prev = cur.node_ptr;
-            cur = start->next;
-            for (; cur != end; ++cur){
+            cur.node_ptr = start.node_ptr;
+            cur.node_ptr->next->prev = cur.node_ptr;
+            ++cur;
+            while (cur != end){
                 cur.node_ptr->next->prev = cur.node_ptr;
+                ++cur;
             }
             __size() += n;
         }
@@ -433,7 +568,8 @@ namespace pocket_stl{
             destroy_node(cur);
             start.node_ptr->next = end.node_ptr;
             throw;
-        }        
+        }
+        return start.node_ptr->next;
     }
 
     template <class T, class Alloc>
@@ -477,25 +613,32 @@ namespace pocket_stl{
     }
 
     template <class T, class Alloc>
+    void
+    list<T, Alloc>::link_node(link_type front, link_type back){
+        front->next = back;
+        back->prev = front;
+    }
+
+    template <class T, class Alloc>
     template <class InputIterator>
     void
     list<T, Alloc>::copy_aux(InputIterator first, InputIterator last){
         iterator cur = begin();
         iterator end = end();
-        if (first == last) {
-            erase(cur, end);
-            return;
-        }
-        while(cur.node_ptr != __node_ptr() && first != last){
+        while(cur != end() && first != last){
             *cur = *first;
             ++first;
             ++cur;
         }
-        if(first != last){
+        if (first == last) {
+            erase(cur, end);
+            return;
+        }       
+        else if(cur == end()){
             insert_copy(cur, first, last);
         }
     }
 
-}
+} // namespace
 
 #endif
