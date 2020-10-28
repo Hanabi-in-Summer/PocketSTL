@@ -73,7 +73,7 @@ cout << endl;
     tst2.merge(tst3);
     tst4.merge(tst5);
     tst2.merge(tst4);
-    // tst2.splice(tst2.begin(), list_tst);
+    tst2.splice(tst2.begin(), list_tst, ++list_tst.begin());
     for(auto& elem : tst2){
         cout << elem << ' ';
     }
@@ -84,7 +84,14 @@ cout << endl;
         cout << elem << ' ';
     }
     cout << endl;
-    
+    pocket_stl::list<int> tst6{8, 9, 4, 5, 7, 6, 1};
+    tst6.swap(tst2);
+    cout << tst6.empty();
+    tst6.reverse();
+    for(auto& elem : tst6){
+        cout << elem << ' ';
+    }
+    cout << endl;
 
     return 0;
 }

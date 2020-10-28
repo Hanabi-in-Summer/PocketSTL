@@ -152,7 +152,9 @@ namespace pocket_stl{
         compressed_pair<size_type, node_allocator_type> node_allocator;     // 保存 size, 表示 list 的长度
 
         link_type& __node_ptr() { return data_allocator.data; }
+        const link_type& __node_ptr() const { return data_allocator.data; }
         size_type& __size() { return node_allocator.data; }
+        const size_type& __size() const{ return node_allocator.data; }
         // node_allocator_type node_allocator;
         // allocator_type      data_allocator;
 
@@ -191,7 +193,7 @@ namespace pocket_stl{
     public:
         /*************** iterator functions *****************/
         iterator                begin() noexcept { return __node_ptr()->next; }
-        const_iterator          begin() const noexcept { return __node_ptr()->next; }
+        const_iterator          begin() const noexcept { return __node_ptr(); }
         iterator                end() noexcept { return __node_ptr(); }
         const_iterator          end() const noexcept { return __node_ptr(); }
         reverse_iterator        rbegin() noexcept { return reverse_iterator(end()); }
@@ -267,15 +269,21 @@ namespace pocket_stl{
         template <class BinaryPredicate>
         void        unique (BinaryPredicate binary_pred);
         void        merge (list& x){
-                    merge(x, std::less<T>());
+                    merge(x, std::less<value_type>());
         }
         void        merge(list&& x) { merge(x); }
         template <class Compare>
         void        merge (list& x, Compare comp);
         template <class Compare>
         void        merge(list&& x, Compare comp) { merge(x, comp); }
+        void        sort() { sort(std::less<value_type>()); }
+        template <class Compare>
+        void        sort (Compare comp);
+        void        reverse() noexcept;
+        /************************ Observers ***********************/
+        allocator_type get_allocator() const noexcept { return allocator_type(); }
 
-       private:
+    private:
         /***********************辅助工具*****************************/
         link_type   get_node() { return node_allocator.allocate(1); }           // 配置一个节点并传回
         void        put_node(link_type p) { node_allocator.deallocate(p); }     // 释放一个节点
@@ -387,7 +395,7 @@ namespace pocket_stl{
         x.__node_ptr() = __node_ptr();
         __node_ptr() = tmp;
         __size() ^= x.__size();
-        x.size() ^= __size();
+        x.__size() ^= __size();
         __size() ^= x.__size();
     }
 
@@ -519,6 +527,44 @@ namespace pocket_stl{
         x.__size() = 0;
     }
 
+    template <class T, class Alloc>
+    template <class Compare>
+    void
+    list<T, Alloc>::sort(Compare comp){
+        if (__size() == 0 || __size() == 1) return;
+        list<T, Alloc> carry;
+        list counter[64];
+		int fill = 0;
+		while (!empty()){
+			carry.splice(carry.begin(), *this, begin());
+			int i = 0;
+			while (i < fill && !counter[i].empty()){
+				counter[i].merge(carry, comp);
+				carry.swap(counter[i++]);
+			}
+			carry.swap(counter[i]);
+			if (i == fill)
+				++fill;
+		}
+		for (int i = 0; i != fill; ++i){
+			counter[i].merge(counter[i - 1], comp);
+		}
+		swap(counter[fill - 1]);
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::reverse() noexcept{
+        if (__size() <= 1) return;
+        iterator cur = begin();
+        
+        while(cur != end()){
+            std::swap(cur.node_ptr->next, cur.node_ptr->prev);
+            --cur;
+        }
+        std::swap(end().node_ptr->prev, end().node_ptr->next);
+    }
+
     // -------------------- 辅助工具
     template <class T, class Alloc>
     template <class... Args>
@@ -557,6 +603,7 @@ namespace pocket_stl{
     void
     list<T, Alloc>::allocate_and_fill(size_type n, const value_type& val){
         __node_ptr() = get_node();
+        __node_ptr()->next = __node_ptr()->prev = __node_ptr();
         __size() = 0;
         if (n == 0) return;
         iterator cur(__node_ptr());
@@ -619,6 +666,7 @@ namespace pocket_stl{
     void
     list<T, Alloc>::allocate_and_copy (InputIterator first, InputIterator last){
         __node_ptr() = get_node();
+        __node_ptr()->next = __node_ptr()->prev = __node_ptr();
         __size() = 0;
         iterator cur(__node_ptr());
         try{
@@ -746,7 +794,7 @@ namespace pocket_stl{
     void
     list<T, Alloc>::link_node_back(iterator pos, link_type node){
         node->next = pos.node_ptr->next;
-        node->prev = pos.node_ptr->prev;
+        node->prev = pos.node_ptr;
         pos.node_ptr->next->prev = node;
         pos.node_ptr->next = node;
     }
@@ -791,6 +839,12 @@ namespace pocket_stl{
         first.node_ptr->prev = start.node_ptr;
         end.node_ptr->prev = tail.node_ptr;
         tail.node_ptr->next = end.node_ptr;
+    }
+
+    /*************** Non-member function overloads *****************/
+    template <class T, class Alloc>
+    void swap (list<T,Alloc>& x, list<T,Alloc>& y){
+        x.swap(y);
     }
 
 } // namespace
