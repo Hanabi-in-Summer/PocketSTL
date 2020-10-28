@@ -6,6 +6,7 @@
 ** 
 */
 
+#include <iostream>
 #include <cstddef>
 #include <stdexcept>
 #include "allocator.h"
@@ -248,6 +249,31 @@ namespace pocket_stl{
         void        resize(size_type n) { resize(n, value_type()); }
         void        resize (size_type n, const value_type& val);
         void        clear() noexcept { erase(begin(), end()); }
+        /************************ operations ***********************/
+        void        splice (const_iterator position, list& x);
+        void        splice (const_iterator position, list&& x);
+        void        splice (const_iterator position, list& x, const_iterator i);
+        void        splice (const_iterator position, list&& x, const_iterator i);
+        void        splice (const_iterator position, list& x, const_iterator first, const_iterator last);
+        void        splice (const_iterator position, list&& x, const_iterator first, const_iterator last);
+        void        remove (const value_type& val) { 
+            remove_if([&](const value_type& elem) { return val == elem; });
+        }
+        template <class Predicate>
+        void        remove_if (Predicate pred);
+        void        unique() {
+            unique([&](const value_type& x, const value_type& y) { return x == y; });
+        }
+        template <class BinaryPredicate>
+        void        unique (BinaryPredicate binary_pred);
+        void        merge (list& x){
+                    merge(x, std::less<T>());
+        }
+        void        merge(list&& x) { merge(x); }
+        template <class Compare>
+        void        merge (list& x, Compare comp);
+        template <class Compare>
+        void        merge(list&& x, Compare comp) { merge(x, comp); }
 
        private:
         /***********************辅助工具*****************************/
@@ -270,6 +296,7 @@ namespace pocket_stl{
         void        link_node(link_type front, link_type back);
         template <class InputIterator>
         void        copy_aux(InputIterator first, InputIterator last);
+        void        transfer(const_iterator position, iterator first, iterator last);
     };
 
     /*-------------------------------部分函数定义------------------------------------*/
@@ -325,8 +352,8 @@ namespace pocket_stl{
         if (position == end()) throw;
         iterator prev(position.node_ptr->prev);
         iterator next(position.node_ptr->next);
-        link_node_back(prev, next);
-        destroy_node(position);
+        link_node(prev.node_ptr, next.node_ptr);
+        destroy_node(position.node_ptr);
         --__size();
         return next;
     }
@@ -378,6 +405,118 @@ namespace pocket_stl{
         else{
             insert(end(), n - __size(), val);
         }
+    }
+
+    // -------------------- operations
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::splice(const_iterator position, list& x){
+        if (this == &x) return;
+        transfer(position, x.begin(), x.end());
+        __size() += x.__size();
+        x.__size() = 0;
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::splice(const_iterator position, list&& x){
+        return splice(position, x);
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::splice(const_iterator position, list& x, const_iterator i){
+        i.node_ptr->prev->next = i.node_ptr->next;
+        i.node_ptr->next->prev = i.node_ptr->prev;
+        position.node_ptr->prev->next = i.node_ptr;
+        i.node_ptr->prev = position.node_ptr->prev;
+        position.node_ptr->prev = i.node_ptr;
+        i.node_ptr->next = position.node_ptr;
+        ++__size();
+        --x.__size();
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::splice(const_iterator position, list&& x, const_iterator i){
+        splice(position, x, i);
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::splice(const_iterator position, list& x, const_iterator first, const_iterator last){
+        const size_type len = std::distance(first, last);
+        transfer(position, first.node_ptr, last.node_ptr);
+        __size() += len;
+        x.__size() -= len;
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::splice(const_iterator position, list&& x, const_iterator first, const_iterator last){
+        splice(position, x, first, last);
+    }
+
+    template <class T, class Alloc>
+    template <class Predicate>
+    void
+    list<T, Alloc>::remove_if(Predicate pred){
+        iterator next = begin();
+        iterator check = begin();
+        while(check != end()){
+            ++next;
+            if (pred(*check)){
+                erase(check);
+            }
+            check = next;
+        }
+    }
+
+    template <class T, class Alloc>
+    template <class Predicate>
+    void
+    list<T, Alloc>::unique(Predicate pred){
+        iterator ref = begin();
+        iterator check = begin();
+        ++check;
+        while(check != end()){            
+            if(pred(*ref, *check)){
+                erase(check);
+                check = ref;
+            }
+            else{
+                ++ref;
+            }
+            ++check;
+        }
+    }
+
+    template <class T, class Alloc>
+    template <class Compare>
+    void
+    list<T, Alloc>::merge(list& x, Compare comp){
+        if (this == &x) return;
+        iterator first_1 = begin();
+        iterator last_1 = end();
+        iterator first_2 = x.begin();
+        iterator last_2 = x.end();
+        while(first_1 != last_1 && first_2 != last_2){
+            if(comp(*first_2, *first_1)){
+                iterator until = first_2;
+                ++until;
+                while(until != last_2 && comp(*until, *first_1)){
+                    ++until;
+                }
+                transfer(first_1, first_2, until);
+                first_2 = until;
+            }
+            ++first_1;
+        }
+        if(first_2 != last_2){
+            transfer(last_1, first_2, last_2);
+        }
+        __size() += x.__size();
+        x.__size() = 0;
     }
 
     // -------------------- 辅助工具
@@ -637,6 +776,21 @@ namespace pocket_stl{
         else if(cur == end()){
             insert_copy(cur, first, last);
         }
+    }
+
+    template <class T, class Alloc>
+    void
+    list<T, Alloc>::transfer(const_iterator position, iterator first, iterator last){
+        iterator start(position.node_ptr->prev);
+        iterator end(position.node_ptr);
+        iterator tail(last.node_ptr->prev);
+        first.node_ptr->prev->next = last.node_ptr;
+        last.node_ptr->prev = first.node_ptr->prev;
+
+        start.node_ptr->next = first.node_ptr;       
+        first.node_ptr->prev = start.node_ptr;
+        end.node_ptr->prev = tail.node_ptr;
+        tail.node_ptr->next = end.node_ptr;
     }
 
 } // namespace

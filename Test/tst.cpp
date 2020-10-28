@@ -66,10 +66,25 @@ cout << endl;
     }
      cout << endl;
     cout << list_tst.size() << endl;
-    list_tst.clear();
+    pocket_stl::list<int> tst2(4, 4);
+    pocket_stl::list<int> tst3(6, 6);
+    pocket_stl::list<int> tst4(5, 5);
+    pocket_stl::list<int> tst5(4, 7);
+    tst2.merge(tst3);
+    tst4.merge(tst5);
+    tst2.merge(tst4);
+    // tst2.splice(tst2.begin(), list_tst);
+    for(auto& elem : tst2){
+        cout << elem << ' ';
+    }
+    cout << endl;
+    tst2.unique();
 
-    cout << endl
-         << list_tst.size() << endl;
+    for(auto& elem : tst2){
+        cout << elem << ' ';
+    }
+    cout << endl;
+    
 
     return 0;
 }
