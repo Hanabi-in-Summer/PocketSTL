@@ -6,7 +6,7 @@
 ** 
 */
 
-#include <iostream>
+// #include <iostream>
 #include <cstddef>
 #include <stdexcept>
 #include "allocator.h"
@@ -40,8 +40,12 @@ namespace pocket_stl{
         using size_type             = size_t;
         using difference_type       = ptrdiff_t;
 
+    private:
         link_type node_ptr;         // iterator 占用一个指针的空间
+        template <class, class> friend class list;
+        template <class, class, class> friend class __list_const_iterator;
 
+    public:
         // ctor
         __list_iterator() : node_ptr(nullptr) { };
         __list_iterator(link_type x) : node_ptr(x) {}
@@ -89,9 +93,13 @@ namespace pocket_stl{
         using link_type             = __list_node<T>*;
         using size_type             = size_t;
         using difference_type       = ptrdiff_t;
-
+        
+    private:
         link_type node_ptr;         // iterator 占用一个指针的空间
+        template <class, class> friend class list;
+        template <class, class, class> friend class __list_iterator;
 
+    public:
         // ctor
         __list_const_iterator() : node_ptr(nullptr) { };
         __list_const_iterator(link_type x) : node_ptr(x) {}
@@ -146,7 +154,7 @@ namespace pocket_stl{
     private:
         using list_node             = __list_node<T>;
         using link_type             = list_node*;
-        using node_allocator_type   = pocket_stl::allocator<list_node>;
+        using node_allocator_type   = typename pocket_stl::allocator<T>::template rebind<list_node>::other;
         // link_type           __node_ptr;
         compressed_pair<link_type, allocator_type> data_allocator ;         // 保存 __node_ptr, 指向头尾节点
         compressed_pair<size_type, node_allocator_type> node_allocator;     // 保存 size, 表示 list 的长度
