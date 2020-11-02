@@ -57,6 +57,87 @@ namespace pocket_stl{
             }
             return *this;
         }
+
+    public:
+        reference operator*() const { return *cur; }
+        pointer operator->() const { return &(operator*()); }
+        difference_type operator-(const self& x) const{
+            return difference_type(buffer_size()) * (node - x.node - 1) + (cur - first) + (x.last - x.cur);
+        }
+        
+        self& operator++(){
+            ++cur;
+            if(cur == last){
+                set_node(node + 1);
+                cur = first;
+            }
+            return *this;
+        }
+
+        self operator++(int){
+            auto tmp = *this;
+            ++*this;
+            return tmp;
+        }
+
+        self& operator--(){
+            if(cur == first){
+                set_node(node - 1);
+                cur = last;
+            }
+            --last;
+            return *this;
+        }
+
+        self operator--(int){
+            auto tmp = *this;
+            --*this;
+            return tmp;
+        }
+
+        self& operator+=(difference_type n){
+            difference_type offset = n + (cur - first);
+            if(offset >= 0 && offset < difference_type(buffer_size())){
+                cur += n;
+            }
+            else{
+                difference_type node_offset =
+                    offset > 0 ? offset / difference_type(buffer_size())
+                               : -difference_type((-offset - 1) / buffer_size()) - 1;
+                set_node(node + node_offset);
+                cur = first + (offset - node_offset * difference_type(buffer_size()));
+            }
+            return *this;
+        }
+
+        self operator+(difference_type n) const{
+            auto tmp = *this;
+            return tmp += n;
+        }
+
+        self& operator-=(difference_type n){
+            return *this += -n;
+        }
+
+        self operator-(difference_type n) const{
+            auto tmp = *this;
+            return tmp -= n;
+        }
+
+        reference operator[](difference_type n) const { return *(*this += n); }
+        bool operator==(const self& x) const { return cur == x.cur; }
+        bool operator!=(const self& x) const { return cur != x.cur; }
+        bool operator<(const self& x) const { return (node == x.node) ? (cur < x.cur) : (node < x.node); }
+        bool operator>(const self& x) const { return (node == x.node) ? (cur > x.cur) : (node > x.node); }
+        bool operator<=(const self& x) const { return !operator<(x); }
+        bool operator>=(const self& x) const { return !operator>(x); }
+
+    private:
+        void set_node(map_pointer new_node){
+            node = new_node;
+            first = *new_node;
+            last = first + difference_type(buffer_size());
+        }
     };
 
     template <class T, class Alloc = pocket_stl::allocator<T>>
