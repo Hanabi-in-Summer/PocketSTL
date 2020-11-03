@@ -154,15 +154,15 @@ namespace pocket_stl{
     private:
         using list_node             = __list_node<T>;
         using link_type             = list_node*;
-        using node_allocator_type   = typename pocket_stl::allocator<T>::template rebind<list_node>::other;
+        using node_allocator_type   = typename Alloc::template rebind<list_node>::other;
         // link_type           __node_ptr;
         compressed_pair<link_type, allocator_type> data_allocator ;         // 保存 __node_ptr, 指向头尾节点
         compressed_pair<size_type, node_allocator_type> node_allocator;     // 保存 size, 表示 list 的长度
 
-        link_type& __node_ptr() { return data_allocator.data; }
-        const link_type& __node_ptr() const { return data_allocator.data; }
-        size_type& __size() { return node_allocator.data; }
-        const size_type& __size() const{ return node_allocator.data; }
+        link_type&          __node_ptr() noexcept { return data_allocator.data; }
+        const link_type&    __node_ptr() const noexcept { return data_allocator.data; }
+        size_type&          __size() noexcept { return node_allocator.data; }
+        const size_type&    __size() const noexcept{ return node_allocator.data; }
         // node_allocator_type node_allocator;
         // allocator_type      data_allocator;
 
