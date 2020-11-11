@@ -2,6 +2,7 @@
 #include "../STL/allocator.h"
 #include "../STL/vector.h"
 #include "../STL/list.h"
+#include "../STL/deque.h"
 #include <list>
 #include <vector>
 
@@ -92,6 +93,9 @@ cout << endl;
         cout << elem << ' ';
     }
     cout << endl;
+
+    cout << "-------list-------" << endl;
+    pocket_stl::deque<int> deq{1, 2, 3};
 
     return 0;
 }

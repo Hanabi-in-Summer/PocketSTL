@@ -38,7 +38,7 @@ namespace pocket_stl{
         static size_type __deque_buffer_size(size_t size) { return size < 512 ? size_type(512 / size) : size_type(1); }
     
     public:
-        __deque_iterator() : cur(nullptr), first(nullptr), last(nullptr), map_pointer(nullptr) {}
+        __deque_iterator() : cur(nullptr), first(nullptr), last(nullptr), node(nullptr) {}
         __deque_iterator(T* cur_arg, map_pointer node_arg) 
             : cur(cur_arg), first(*node_arg), last(*node_arg + buffer_size()), node(node_arg) {}
         __deque_iterator(const iterator& rhs)
@@ -185,11 +185,49 @@ namespace pocket_stl{
         template <class InputIterator, class std::enable_if<
                                            !std::is_integral<InputIterator>::value>::type>
         deque(InputIterator first, InputIterator last) { allocate_and_copy(first, last); } 
-        deque(const deque& x);
-        deque(deque&& x);
-        deque(std::initializer_list<value_type> il);
+        deque(const deque& x) { allocate_and_copy(x.begin(), x.end()); }
+        deque(deque&& x) : __map(std::move(x.__map)), __map_size(std::move(__map_size)){
+            __start() = std::move(x.__start());
+            __finish() = std::move(x.__finish());
+            x.__map = nullptr;
+            x.__map_size = 0;
+        }
+        deque(std::initializer_list<value_type> il) { allocate_and_copy(il.begin(), il.end()); }
+        ~deque() { destroy_and_deallocate_all(); }
+        deque& operator= (const deque& x);
+        deque& operator= (deque&& x);
+        deque& operator= (std::initializer_list<value_type> il);  
 
+    public:
+        /*************** Iterators *****************/
+        iterator begin() noexcept { return __start().cur; }
+        const_iterator begin() const noexcept { return __start().cur; }
+        iterator end() noexcept { return __finish().cur; }
+        const_iterator end() const noexcept { return __finish().cur; }
+        reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+        const_reverse_iterator rbegin() const noexcept { return reverse_iterator(end()); }
+        reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+        const_reverse_iterator rend() const noexcept { return reverse_iterator(begin()); }
+        const_iterator cbegin() const noexcept { return begin(); }
+        const_iterator cend() const noexcept { return end(); }
+        const_reverse_iterator crbegin() const noexcept { return reverse_iterator(end()); }
+        const_reverse_iterator crend() const noexcept { return reverse_iterator(begin()); }
+        /*************** Capacity *****************/
+        size_type size() const noexcept { return __finish() - __start(); }
+        size_type max_size() const noexcept { return static_cast<size_type>(-1); }
 
+        /*************** Modifiers *****************/
+        iterator insert (const_iterator position, const value_type& val);
+        iterator insert (const_iterator position, size_type n, const value_type& val);
+        template <class InputIterator, class std::enable_if<
+                    std::is_integral<InputIterator>::value
+                    >::type>
+        iterator insert (const_iterator position, InputIterator first, InputIterator last);
+        iterator insert (const_iterator position, value_type&& val);
+        iterator insert (const_iterator position, std::initializer_list<value_type> il);
+
+        iterator erase (const_iterator position );
+        iterator erase (const_iterator first, const_iterator last );
     private:
         /***********************辅助工具*****************************/
         static size_type buffer_size() { return iterator::buffer_size(); }
@@ -197,11 +235,18 @@ namespace pocket_stl{
         template <class InputItearator>
         void allocate_and_copy(InputItearator first, InputItearator last);
         void create_map_and_nodes(size_type num_elementes);
-
+        void destroy_and_deallocate_all();
     };
 
     /*-------------------------------部分函数定义------------------------------------*/
+    // -------------------- operator=
+    template <class T, class Alloc>
+    deque<T, Alloc>&
+    deque<T, Alloc>::operator=(const deque& x){
+        if(this != &x){
 
+        }
+    }
 
     // -------------------- 辅助工具
     template <class T, class Alloc>
@@ -222,14 +267,22 @@ namespace pocket_stl{
     template <class InputIterator>
     void
     deque<T, Alloc>::allocate_and_copy(InputIterator first, InputIterator last){
-        
+        const size_type n = std::distance(first, last);
+        create_map_and_nodes(n);
+        for (auto cur = __start().node; cur < __finish().node; ++cur){
+            auto next = first;
+            std::advance(next, buffer_size());
+            uninitialized_copy(first, next, *cur);
+            first = next;
+        }
+        uninitialized_copy(first, last, __finish().first);
     }
 
     template <class T, class Alloc>
     void
     deque<T, Alloc>::create_map_and_nodes(size_type num_elements){
         size_type num_nodes = num_elements / buffer_size() + 1;
-        __map_size = max(num_nodes + 2, DEQUE_INIT_MAP_SIZE);
+        __map_size = std::max(num_nodes + 2, size_type(DEQUE_INIT_MAP_SIZE));
         __map = __map_allocator().allocate(__map_size);
         map_pointer nstart = __map + (__map_size - num_nodes) / 2;
         map_pointer nfinish = nstart + num_nodes - 1;
@@ -250,6 +303,20 @@ namespace pocket_stl{
         __finish().set_node(nfinish);
         __start().cur = __start().first;
         __finish().cur = __finish().first + num_elements % buffer_size();
+    }
+
+    template <class T, class Alloc>
+    void
+    deque<T, Alloc>::destroy_and_deallocate_all(){
+        for (auto cur = __start().node + 1; cur < __finish().node; ++cur){
+            destroy(*cur, *(cur + buffer_size()));
+        }
+        if(__start().node != __finish().node){
+            destroy(__start().cur, __start().last);
+            destroy(__finish().first, __finish().cur);
+        }
+        __data_allocator().deallocate(*__start().node, buffer_size());
+        __data_allocator().deallocate(__map, __map_size);
     }
 
 } // namespace
