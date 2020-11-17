@@ -226,6 +226,8 @@ namespace pocket_stl{
         void        push_front(value_type&& val) { emplace_front(std::move(val)); }
         void        push_back (const value_type& val);
         void        push_back(value_type&& val) { emplace_back(std::move(val)); }
+        void        pop_back();
+        void        pop_front();
         iterator    insert (const_iterator position, const value_type& val);
         iterator    insert (const_iterator position, size_type n, const value_type& val);
         template <class InputIterator, class std::enable_if<
@@ -233,7 +235,7 @@ namespace pocket_stl{
                     >::type>
         iterator    insert (const_iterator position, InputIterator first, InputIterator last);
         iterator    insert (const_iterator position, value_type&& val);
-        iterator    insert (const_iterator position, std::initializer_list<value_type> il);
+        iterator    insert (const_iterator position, std::initializer_list<value_type> il) { return insert(position, il.begin(), il.end); }
 
         iterator    erase (const_iterator position );
         iterator    erase (const_iterator first, const_iterator last );
@@ -259,7 +261,9 @@ namespace pocket_stl{
         void                reallocate_map(size_type nodes_to_add, bool add_at_front);
         template <class... Args>
         iterator            insert_aux(iterator pos, Args&&... args);
-        iterator            insert_fill(iterator pos, size_type n, const value_type& val);
+        void                insert_fill(iterator pos, size_type n, const value_type& val);
+        template <class InputIterator>
+        void                insert_copy(iterator pos, InputIterator first, InputIterator last, size_type n);
 
     };
 
@@ -347,7 +351,7 @@ namespace pocket_stl{
     typename deque<T, Alloc>::iterator
     deque<T, Alloc>::insert(const_iterator position, size_type n, const value_type& val){
         if(position.cur == __start().cur){
-            int nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
             expand_at_front(nodes_to_add);
             iterator new_begin = __start() - n;
             uninitialized_fill_n(new_begin, n, val);
@@ -355,7 +359,7 @@ namespace pocket_stl{
             return __start();
         }
         else if(position.cur == __finish().cur){
-            int nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
             expand_at_back(nodes_to_add);
             iterator new_end = __finish() + n;
             iterator old_end = __finish();
@@ -364,9 +368,42 @@ namespace pocket_stl{
             return old_end;
         }
         else{
-            return insert_fill(position, n, val);
+            insert_fill(position, n, val);
+            return position;
         }
     }
+
+    template <class T, class Alloc>
+    template <class InputIterator, class std::enable_if<
+                    std::is_integral<InputIterator>::value
+                    >::type>
+    typename deque<T, Alloc>::iterator
+    deque<T, Alloc>::insert(const_iterator position, InputIterator first, InputIterator last){
+        const size_type n = std::distance(first, last);
+        if(position.cur == __start().cur){
+            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            expand_at_front(nodes_to_add);
+            iterator new_begin = __start() - n;
+            uninitialized_copy(first, last, new_begin);
+            __start() = new_begin;
+            return __start();
+        }
+        else if(position.cur == __finish().cur){
+            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            expand_at_back(nodes_to_add);
+            iterator new_end = __finish() + n;
+            iterator old_end = __finish();
+            uninitialized_copy(first, last, __finish());
+            __finish() = new_end;
+            return old_end;
+        }
+        else{            
+            insert_copy(position, first, last, n);
+            return position;
+        }           
+    }
+
+
 
     template <class T, class Alloc>
     template <class... Args>
@@ -560,6 +597,110 @@ namespace pocket_stl{
         *pos = std::move(val_cp);
         return pos;
     }
+
+    template <class T, class Alloc>
+    void
+    deque<T, Alloc>::insert_fill(iterator pos, size_type n, const value_type& val){
+        const size_type elems_before = pos - __start();
+        const size_type len = size();
+        if(elems_before < (len >> 1)){
+            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            expand_at_front(nodes_to_add);
+            auto old_start = __start();
+            auto new_start = __start() - n;
+            pos = __start() + elems_before;
+
+            if(elems_before >= n){
+                auto begin = __start() + n;
+                uninitialized_copy(__start(), begin, new_start);
+                __start() = new_start;
+                std::copy(begin, pos, old_start);
+                std::fill(pos - n, pos, val);
+            }
+            else{
+                uninitialized_fill(uninitialized_copy(__start(), pos, new_start), __start(), val);
+                __start() = new_start;
+                std::fill(old_start, pos, val);
+            }
+        }
+        else{
+            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            expand_at_back(nodes_to_add);
+            auto old_finish = __finish();
+            auto new_finish = __finish() + n;
+            const size_type elems_after = len - elems_before;
+            pos = __finish() - elems_after;
+
+            if(elems_after > n){
+                auto end = __finish() - n;
+                uninitialized_copy(end, __finish(), __finish());
+                __finish() = new_finish;
+                std::copy_backward(pos, end, old_finish);
+                std::fill(pos, pos + n, val);
+            }
+            else{
+                uninitialized_fill(__finish(), pos + n, val);
+                uninitialized_copy(pos, __finish(), pos + n);
+                __finish() = new_finish;
+                std::fill(pos, old_finish, val);
+            }
+        }
+    }
+
+
+    template <class T, class Alloc>
+    template <class InputIterator>
+    void
+    deque<T, Alloc>::insert_copy(iterator pos, InputIterator first, InputIterator last, size_type n){
+        const size_type elems_before = pos - __start();
+        auto len = size();
+        if(elems_before < (len >> 1)){
+            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            expand_at_front(nodes_to_add);
+            auto old_start = __start();
+            auto new_start = __start() - n;
+            pos = __start() + elems_before;
+
+            if(elems_before >= n){
+                auto begin = __start() + n;
+                uninitialized_copy(__start(), begin, new_start);
+                __start() = new_start;
+                std::copy(begin, pos, old_start);
+                std::copy(first, last, pos - n);
+            }
+            else{
+                auto mid = first;
+                std::advance(mid, n - elems_before);
+                uninitialized_copy(first, mid, uninitialized_copy(__start(), pos, new_start));
+                __start() = new_start;
+                std::copy(mid, last, old_start);
+            }
+        }
+        else{
+            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            expand_at_back(nodes_to_add);
+            auto old_finish = __finish();
+            auto new_finish = __finish() + n;
+            const size_type elems_after = len - elems_before;
+            pos = __finish() - elems_after;
+
+            if(elems_after > n){
+                auto end = __finish() - n;
+                uninitialized_copy(end, __finish(), __finish());
+                __finish() = new_finish;
+                std::copy_backward(pos, end, old_finish);
+                std::copy(first, last, pos);
+            }
+            else{
+                auto mid = first;
+                std::advance(mid, elems_after);
+                uninitialized_copy(pos, __finish(), uninitialized_copy(mid, last, __finish()));
+                __finish() = new_finish;
+                std::copy(first, mid, pos);
+            }
+        }
+    }
+
 
 } // namespace
 
