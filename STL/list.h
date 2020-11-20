@@ -179,7 +179,7 @@ namespace pocket_stl{
         }
         // **** range ctor
         template <class InputIterator,
-                  class std::enable_if<
+                  class = typename std::enable_if<
                       !std::is_integral<InputIterator>::value>::type>
         list(InputIterator first, InputIterator last) { allocate_and_copy(first, last); }
         // **** copy ctor
@@ -226,7 +226,7 @@ namespace pocket_stl{
     public:
         /************************ modifiers ***********************/
         // assign
-        template <class InputIterator, class std::enable_if<
+        template <class InputIterator, class = typename std::enable_if<
                                             !std::is_integral<InputIterator>::value>::type>
         void        assign(InputIterator first, InputIterator last) { return copy_aux(first, last); } 
         void        assign(size_type n, const value_type& val);
@@ -247,7 +247,7 @@ namespace pocket_stl{
         // insert
         iterator    insert(const_iterator position, const value_type& val) { return insert_one(position, val); }
         iterator    insert(const_iterator position, size_type n, const value_type& val) { return insert_fill(position, n, val); }
-        template <class InputIterator, class std::enable_if<
+        template <class InputIterator, class = typename std::enable_if<
                                             !std::is_integral<InputIterator>::value>::type>
         iterator    insert(const_iterator position, InputIterator first, InputIterator last) { return insert_copy(position, first, last); } 
         iterator    insert(const_iterator position, value_type&& val);

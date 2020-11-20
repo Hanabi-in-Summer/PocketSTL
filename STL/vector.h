@@ -11,6 +11,7 @@
 #include <type_traits>
 #include "allocator.h"
 #include "uninitialized.h"
+#include "algobase.h"
 
 namespace pocket_stl{
     template <class T, class Alloc = allocator<T>>
@@ -214,12 +215,12 @@ namespace pocket_stl{
                 swap(tmp);
             }
             else if(len >= size()){
-                std::copy(x.begin(), x.begin() + size(), __start);
+                pocket_stl::copy(x.begin(), x.begin() + size(), __start);
                 uninitialized_copy(x.begin() + size(), x.end(), __end);
                 __end = __start + len;
             }
             else if(len < size()){
-                std::copy(x.begin(), x.end(), __start);
+                pocket_stl::copy(x.begin(), x.end(), __start);
                 // data_allocator.destroy(__start + len, __end);
                 destroy(__start + len, __end);
                 __end = __start + len;
@@ -436,7 +437,7 @@ namespace pocket_stl{
     vector<T, Alloc>::erase(const_iterator position){
         iterator pos_tmp = __start + (position - __start);
         if(pos_tmp + 1 != __end){
-            std::copy(pos_tmp + 1, __end, pos_tmp);
+            pocket_stl::copy(pos_tmp + 1, __end, pos_tmp);
         }
         --__end;
         // data_allocator.destroy(__end);
@@ -451,7 +452,7 @@ namespace pocket_stl{
         iterator last_copy = __start + (last - __start);
         iterator tmp = first_copy;
         if(last != __end){
-            tmp = std::copy(last_copy, __end, first_copy);
+            tmp = pocket_stl::copy(last_copy, __end, first_copy);
         }
         pocket_stl::destroy(tmp, last_copy);
         __end -= last - first;
@@ -491,7 +492,7 @@ namespace pocket_stl{
             else{
                 // data_allocator.construct(&*__end, *(__end - 1));
                 __end_cap.construct(&*__end, *(__end - 1));
-                std::copy_backward(pos_copy, __end - 1, __end);
+                pocket_stl::copy_backward(pos_copy, __end - 1, __end);
                 *position = vaule_type(std::forward<Args>(args)...);
                 __end++;
                 return pos_copy;
@@ -610,15 +611,15 @@ namespace pocket_stl{
                 if(elems_after > n){
                     uninitialized_copy(__end - n, old_end, __end);
                     __end += n;
-                    std::copy_backward(position, old_end - n, old_end);
-                    std::fill(position, position + n, val);
+                    pocket_stl::copy_backward(position, old_end - n, old_end);
+                    pocket_stl::fill(position, position + n, val);
                 }
                 else{
                     uninitialized_fill_n(__end, n - elems_after, val);
                     __end = position + n;
                     uninitialized_copy(position, old_end, position + n);
                     __end += elems_after;
-                    std::fill(position, old_end, val);
+                    pocket_stl::fill(position, old_end, val);
                 }
             }
             else{
@@ -661,8 +662,8 @@ namespace pocket_stl{
             if (elems_after > n){
                 uninitialized_copy(old_end - n, old_end, old_end);
                 __end += n;
-                std::copy_backward(position, old_end - n, old_end);
-                std::copy(first, last, position);
+                pocket_stl::copy_backward(position, old_end - n, old_end);
+                pocket_stl::copy(first, last, position);
             }
             else{
                 InputIterator mid = first;
