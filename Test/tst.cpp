@@ -94,8 +94,39 @@ cout << endl;
     }
     cout << endl;
 
-    cout << "-------list-------" << endl;
+    cout << "-------deque-------" << endl;
     pocket_stl::deque<int> deq{1, 2, 3};
+    for (auto i = deq.begin(); i != deq.end(); ++i){
+        cout << *i << ' ';
+    }
+    cout << endl;
+    deq.push_back(8);
+    deq.push_front(18);
+    deq.emplace_back(18);
+    deq.pop_back();
+    auto itr = deq.end();
+    itr -= 2;
+    deq.insert(itr, 3, 10);
+    for (int i = 0; i < deq.size(); ++i){
+        cout << deq[i] << ' ';
+    }
+    cout << endl;
+    itr = deq.begin();
+    itr += 3;
+    deq.erase(itr);
+
+    // deq.push_front(18);
+    for (int i = 0; i < deq.size(); ++i){
+        cout << deq[i] << ' ';
+    }
+    deq.erase(itr, deq.end());
+    cout << endl;
+    for (int i = 0; i < deq.size(); ++i){
+        cout << deq[i] << ' ';
+    }
+    // auto itr = deq.end();
+    // cout << *(--itr);
+    
 
     return 0;
 }

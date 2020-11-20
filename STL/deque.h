@@ -30,6 +30,7 @@ namespace pocket_stl{
     
     private:
         template <class, class> friend class deque;
+        template <class, class, class >friend class __deque_iterator;
         T* cur;
         T* first;
         T* last;
@@ -45,7 +46,8 @@ namespace pocket_stl{
             : cur(rhs.cur), first(rhs.first), last(rhs.last), node(rhs.node) {}
         __deque_iterator(iterator && rhs)
             : cur(rhs.cur), first(rhs.first), last(rhs.last), node(rhs.node){
-            rhs.cur = rhs.first = rhs.last = rhs.node = nullptr;
+            rhs.cur = rhs.first = rhs.last = nullptr;
+            rhs.node = nullptr;
         }
         __deque_iterator(const const_iterator& rhs)
             : cur(rhs.cur), first(rhs.first), last(rhs.last), node(rhs.node) {}
@@ -86,7 +88,7 @@ namespace pocket_stl{
                 set_node(node - 1);
                 cur = last;
             }
-            --last;
+            --cur;
             return *this;
         }
 
@@ -250,13 +252,16 @@ namespace pocket_stl{
         iterator    erase (const_iterator position );
         iterator    erase (const_iterator first, const_iterator last );
         void        clear() noexcept;
+        void        swap (deque& x);
         template <class... Args>
         iterator    emplace (const_iterator position, Args&&... args);
         template <class... Args>
         void        emplace_front (Args&&... args);
         template <class... Args>
         void        emplace_back (Args&&... args);
-    private:
+        allocator_type get_allocator() const noexcept { return allocator_type(); }
+
+       private:
         /***********************辅助工具*****************************/
         static size_type    buffer_size() { return iterator::buffer_size(); }
         void                allocate_and_fill(size_type n, const value_type& val);
@@ -386,7 +391,7 @@ namespace pocket_stl{
     void
     deque<T, Alloc>::clear() noexcept{
         for (map_pointer cur = __start().node + 1; cur != __finish().node; ++cur){
-            __data_allocator().destroy(*cur, *cur + buffer_size());
+            destroy(*cur, *cur + buffer_size());
         }
         if(__start().node != __finish().node){
             destroy(__start().cur, __start().last);
@@ -397,6 +402,15 @@ namespace pocket_stl{
         }
         shrink_to_fit();
         __finish() = __start();
+    }
+
+    template <class T, class Alloc>
+    void
+    deque<T, Alloc>::swap(deque& x){
+        std::swap(__start(), x.__start());
+        std::swap(__finish(), x.__finish());
+        std::swap(__map, x.__map);
+        std::swap(__map_size, x.__map_size);
     }
 
     template <class T, class Alloc>
@@ -412,7 +426,7 @@ namespace pocket_stl{
             return __finish() - 1;
         }
         else{
-            insert_aux(position, std::forward<Args>(args)...);
+            return insert_aux(position, std::forward<Args>(args)...);
         }
     }
 
@@ -462,14 +476,14 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void
     deque<T, Alloc>::push_front(const value_type& val){
-        if(__finish().cur != __start().first){
+        if(__start().cur != __start().first){
             __data_allocator().construct(__start().cur - 1, val);
             --__start().cur;
         }
         else{
             expand_at_front();
-            __data_allocator().construct(__start().cur - 1, val);
             --__start();
+            __data_allocator().construct(__start().cur, val);         
         }
     }
 
@@ -499,7 +513,7 @@ namespace pocket_stl{
     typename deque<T, Alloc>::iterator
     deque<T, Alloc>::insert(const_iterator position, size_type n, const value_type& val){
         if(position.cur == __start().cur){
-            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            size_type nodes_to_add = (n - (__start().cur - __start().first)) / buffer_size();
             expand_at_front(nodes_to_add);
             iterator new_begin = __start() - n;
             uninitialized_fill_n(new_begin, n, val);
@@ -507,7 +521,7 @@ namespace pocket_stl{
             return __start();
         }
         else if(position.cur == __finish().cur){
-            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            size_type nodes_to_add = (n - (__finish().last - __start().cur) + 1) / buffer_size();
             expand_at_back(nodes_to_add);
             iterator new_end = __finish() + n;
             iterator old_end = __finish();
@@ -529,7 +543,7 @@ namespace pocket_stl{
     deque<T, Alloc>::insert(const_iterator position, InputIterator first, InputIterator last){
         const size_type n = std::distance(first, last);
         if(position.cur == __start().cur){
-            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            size_type nodes_to_add = (n - (__start().cur - __start().first)) / buffer_size();
             expand_at_front(nodes_to_add);
             iterator new_begin = __start() - n;
             uninitialized_copy(first, last, new_begin);
@@ -537,7 +551,7 @@ namespace pocket_stl{
             return __start();
         }
         else if(position.cur == __finish().cur){
-            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            size_type nodes_to_add = (n - (__finish().last - __start().cur) + 1) / buffer_size();
             expand_at_back(nodes_to_add);
             iterator new_end = __finish() + n;
             iterator old_end = __finish();
@@ -555,14 +569,15 @@ namespace pocket_stl{
     typename deque<T, Alloc>::iterator
     deque<T, Alloc>::erase(const_iterator position){
         iterator next = position;
+        iterator pos = position;
         ++next;
-        difference_type index = position - __start();
+        difference_type index = pos - __start();
         if(index < (size() >> 1)){
-            std::copy_backward(__start(), position, next);
+            std::copy_backward(__start(), pos, next);
             pop_front();
         }
         else{
-            std::copy(next, __finish(), position);
+            std::copy(next, __finish(), pos);
             pop_back();
         }
         return __start() + index;
@@ -571,7 +586,9 @@ namespace pocket_stl{
     template <class T, class Alloc>
     typename deque<T, Alloc>::iterator
     deque<T, Alloc>::erase(const_iterator first, const_iterator last){
-        if(first == __start() && last == __finish()){
+        iterator f = first;
+        iterator l = last;
+        if(f == __start() && l == __finish()){
             clear();
             return __finish();
         }
@@ -579,7 +596,7 @@ namespace pocket_stl{
             difference_type n = last - first;
             difference_type elems_before = first - __start();
             if(elems_before < (size() - n) / 2){
-                std::copy_backward(__start(), first, last);
+                std::copy_backward(__start(), f, l);
                 iterator new_start = __start() + n;
                 destroy(__start(), new_start);
                 for (map_pointer cur = __start().node; cur < new_start.node; ++cur){
@@ -588,7 +605,7 @@ namespace pocket_stl{
                 __start() = new_start;
             }
             else{
-                std::copy(last, __finish(), first);
+                std::copy(l, __finish(), f);
                 iterator new_finish = __finish() - n;
                 for (map_pointer cur = new_finish.node + 1; cur <= __finish().node; ++cur){
                     __data_allocator().deallocate(*cur, buffer_size());
@@ -618,14 +635,14 @@ namespace pocket_stl{
     template <class... Args>
     void
     deque<T, Alloc>::emplace_front(Args&&... args){
-        if(__finish().cur != __start().first){
+        if(__start().cur != __start().first){
             __data_allocator().construct(__start().cur - 1, std::forward<Args>(args)...);
             --__start().cur;
         }
         else{
             expand_at_front();
-            __data_allocator().construct(__start().cur - 1, std::forward<Args>(args)...);
             --__start();
+            __data_allocator().construct(__start().cur, std::forward<Args>(args)...);
         }
     }
 
@@ -697,14 +714,14 @@ namespace pocket_stl{
             destroy(__finish().first, __finish().cur);
         }
         __data_allocator().deallocate(*__start().node, buffer_size());
-        __data_allocator().deallocate(__map, __map_size);
+        __map_allocator().deallocate(__map, __map_size);
     }
 
     template <class T, class Alloc>
     void
     deque<T, Alloc>::expand_at_back(size_type nodes_to_add){
         reserve_map_at_back(nodes_to_add);
-        for (int i = 1; i <= nodes_to_add; ++i){
+        for (size_type i = 1; i <= nodes_to_add; ++i){
             *(__finish().node + i) = allocate_node();
         }
     }
@@ -713,7 +730,7 @@ namespace pocket_stl{
     void
     deque<T, Alloc>::expand_at_front(size_type nodes_to_add){
         reserve_map_at_front(nodes_to_add);
-        for (int i = 1; i <= nodes_to_add; ++i){
+        for (size_type i = 1; i <= nodes_to_add; ++i){
             *(__start().node - i) = allocate_node();
         }
     }
@@ -729,7 +746,7 @@ namespace pocket_stl{
     template <class T, class Alloc>
     void
     deque<T, Alloc>::reserve_map_at_front(size_type nodes_to_add){
-        if(nodes_to_add + 1 > __start().node - __map){
+        if(nodes_to_add + 1 > size_type(__start().node - __map)){
             reallocate_map(nodes_to_add, true);
         }
     }
@@ -798,7 +815,7 @@ namespace pocket_stl{
         const size_type elems_before = pos - __start();
         const size_type len = size();
         if(elems_before < (len >> 1)){
-            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            size_type nodes_to_add = (n - (__start().cur - __start().first)) / buffer_size();
             expand_at_front(nodes_to_add);
             auto old_start = __start();
             auto new_start = __start() - n;
@@ -818,7 +835,7 @@ namespace pocket_stl{
             }
         }
         else{
-            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            size_type nodes_to_add = (n - (__finish().last - __start().cur) + 1) / buffer_size();
             expand_at_back(nodes_to_add);
             auto old_finish = __finish();
             auto new_finish = __finish() + n;
@@ -849,7 +866,7 @@ namespace pocket_stl{
         const size_type elems_before = pos - __start();
         auto len = size();
         if(elems_before < (len >> 1)){
-            size_type nodes_to_add = (n - __start().cur + __start().first) / buffer_size();
+            size_type nodes_to_add = (n - (__start().cur - __start().first)) / buffer_size();
             expand_at_front(nodes_to_add);
             auto old_start = __start();
             auto new_start = __start() - n;
@@ -871,7 +888,7 @@ namespace pocket_stl{
             }
         }
         else{
-            size_type nodes_to_add = (n - __finish().last + __start().cur + 1) / buffer_size();
+            size_type nodes_to_add = (n - (__finish().last - __start().cur) + 1) / buffer_size();
             expand_at_back(nodes_to_add);
             auto old_finish = __finish();
             auto new_finish = __finish() + n;
@@ -907,6 +924,53 @@ namespace pocket_stl{
     void
     deque<T, Alloc>::destroy_buffer(map_pointer node){
         *node = nullptr;
+    }
+
+    //****************************非成员函数************************************/
+    /****************************relational operator****************************/
+    template <class T, class Alloc>
+    bool operator== (const deque<T,Alloc>& lhs, const deque<T,Alloc>& rhs){
+        if (lhs.size() != rhs.size()) return false;
+        else{
+            auto litr = lhs.begin();
+            auto ritr = rhs.begin();
+            while(litr != lhs.end()) {
+                if (!(*litr == *ritr)) return false;
+                ++litr;
+                ++ritr;
+            }
+            return true;
+        }
+    }
+
+    template <class T, class Alloc>
+    bool operator!= (const deque<T,Alloc>& lhs, const deque<T,Alloc>& rhs){
+        return !operator==(lhs, rhs);
+    }
+
+    template <class T, class Alloc>
+    bool operator<  (const deque<T,Alloc>& lhs, const deque<T,Alloc>& rhs){
+        return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+
+    template <class T, class Alloc>
+    bool operator<= (const deque<T,Alloc>& lhs, const deque<T,Alloc>& rhs){
+        return !(rhs < lhs);
+    }
+
+    template <class T, class Alloc>
+    bool operator>  (const deque<T,Alloc>& lhs, const deque<T,Alloc>& rhs){
+        return rhs < lhs;
+    }
+
+    template <class T, class Alloc>
+    bool operator>= (const deque<T,Alloc>& lhs, const deque<T,Alloc>& rhs){
+        return !(lhs < rhs);
+    }
+
+    template <class T, class Alloc>
+    void swap (deque<T,Alloc>& x, deque<T,Alloc>& y){
+        x.swap(y);
     }
 
 
