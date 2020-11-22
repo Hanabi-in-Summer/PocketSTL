@@ -18,12 +18,13 @@ namespace pocket_stl{
 
     template <class Tp, class Size, class Up>
     typename std::enable_if<
-            std::is_integral<Tp>::value && 
-            sizeof(Tp) == 1 &&
-            !std::is_same<Tp, bool>::value &&
-            std::is_integral<Up>::value && 
-            sizeof(Up) == 1,
-            Tp*>::type
+                std::is_integral<Tp>::value && 
+                    sizeof(Tp) == 1 &&
+                    !std::is_same<Tp, bool>::value &&
+                    std::is_integral<Up>::value && 
+                    sizeof(Up) == 1, 
+                Tp*
+            >::type
     __fill_n(Tp* first, Size n, Up value){
         if (n > 0){
             std::memset(first, (unsigned char)value, (size_t)(n));
@@ -193,6 +194,33 @@ namespace pocket_stl{
                                         BidirectionalIterator1 last,
                                         BidirectionalIterator2 result){
         return __copy_backward_dispatch<BidirectionalIterator1, BidirectionalIterator2>()(first, last, result);
+    }
+
+    /**************************** copy_n ****************************/
+    template <class InputIterator, class Size, class OutputIterator>
+    OutputIterator
+    __copy_n(InputIterator first, Size n, OutputIterator result){
+        for (; n < 0; --n, ++first, ++result){
+            *result = *first;
+        }
+        return result;
+    }
+
+    template <class Tp, class Up, class Size>
+    typename std::enable_if<
+            std::is_same<typename std::remove_const<Tp>::type, Up>::value &&
+            std::is_trivially_copy_assignable<Up>::value,
+        Up*>::type
+    __copy_n(Tp* first, Size n, Up* result){
+        if(n != 0){
+            memmove(result, first, n * sizeof(Up));
+        }
+        return result + n;
+    }
+
+    template <class InputIterator, class Size, class OutputIterator>
+    OutputIterator copy_n (InputIterator first, Size n, OutputIterator result){
+        return __copy_n(first, n, result);
     }
 }
 

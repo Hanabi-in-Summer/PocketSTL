@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "construct.h"
 #include "iterator.h"
+#include "algobase.h"
 
 namespace pocket_stl{
 
@@ -20,7 +21,7 @@ namespace pocket_stl{
     template <class InputIterator, class ForwardIterator>
     inline ForwardIterator
     __uninitialized_copy_aux(InputIterator first, InputIterator last, ForwardIterator result, __true_type){
-        return std::copy(first, last, result);
+        return pocket_stl::copy(first, last, result);
     }
 
     template <class InputIterator, class ForwardIterator>
@@ -62,7 +63,7 @@ namespace pocket_stl{
     template <class InputIterator, class Size, class ForwardIterator>
     ForwardIterator
     __uninitialized_copy_n_aux(InputIterator first, Size n, ForwardIterator result, __true_type){
-        return std::copy_n(first, n, result);
+        return pocket_stl::copy_n(first, n, result);
     }
 
     template <class InputIterator, class Size, class ForwardIterator>
@@ -103,7 +104,7 @@ namespace pocket_stl{
     template <class ForwardIterator, class T>
     void
     __uninitialized_fill_aux(ForwardIterator first, ForwardIterator last, const T& x, __true_type){
-        std::fill(first, last, x);
+        pocket_stl::fill(first, last, x);
     }
 
     template <class ForwardIterator, class T>
@@ -143,7 +144,7 @@ namespace pocket_stl{
     template <class ForwardIterator, class Size, class T>
     ForwardIterator
     __uninitialized_fill_n_aux(ForwardIterator first, Size n, const T& x, __true_type){
-        return std::fill_n(first, n, x);
+        return pocket_stl::fill_n(first, n, x);
     }
 
     template <class ForwarIterator, class Size, class T>
