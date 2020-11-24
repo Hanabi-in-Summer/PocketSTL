@@ -19,33 +19,35 @@ using std::vector;
 int main() {
     cout << "-------vector-------" << endl;
     // vector<int, pocket_stl::allocator<int>> tst;
-    const pocket_stl::vector<int> tst{1, 2, 3, 4, 5};
-    pocket_stl::vector<int> aux(3, 88);
+    do{
+        const pocket_stl::vector<int> tst{1, 2, 3, 4, 5};
+        pocket_stl::vector<int> aux(3, 88);
 
-    for(auto& elem : aux){
-        cout << elem << ' ';
-    }
-    
-    cout << endl;
-    // aux.assign(tst.begin(), tst.begin() + 1);
-    aux = tst;
-    for(auto& elem : aux){
-        cout << elem << ' ';
-    }
+        for(auto& elem : aux){
+            cout << elem << ' ';
+        }
+        
+        cout << endl;
+        // aux.assign(tst.begin(), tst.begin() + 1);
+        aux = tst;
+        for(auto& elem : aux){
+            cout << elem << ' ';
+        }
 
-    aux.push_back(15);
-    cout << endl;
-    for(auto& elem : aux){
-        cout << elem << ' ';
-    }
-    aux.pop_back();
-cout << endl;
-    for(auto& elem : aux){
-        cout << elem << ' ';
-    }
-    cout << endl;
-    cout << sizeof(tst);
-    cout << endl;
+        aux.push_back(15);
+        cout << endl;
+        for(auto& elem : aux){
+            cout << elem << ' ';
+        }
+        aux.pop_back();
+        cout << endl;
+        for(auto& elem : aux){
+            cout << elem << ' ';
+        }
+        cout << endl;
+        cout << sizeof(tst);
+        cout << endl;
+    } while (0);
     cout << "-------list-------" << endl;
     pocket_stl::list<int> list_tst(5, 5);
     cout << list_tst.size() << endl;
@@ -125,29 +127,30 @@ cout << endl;
     for (int i = 0; i < deq.size(); ++i){
         cout << deq[i] << ' ';
     }
-    // auto itr = deq.end();
-    // cout << *(--itr);
-    // pocket_stl::deque<int> com_deq1;
-    // pocket_stl::deque<int> com_deq2;
-    // com_deq1.push_back(5);
-    // com_deq2.push_back(8);
-    // cout << '\n' << ((com_deq1 < com_deq2) ? "true" : "false");
+//     // auto itr = deq.end();
+//     // cout << *(--itr);
+    pocket_stl::deque<int> com_deq1;
+    pocket_stl::deque<int> com_deq2;
+    com_deq1.push_back(5);
+    com_deq2.push_back(8);
+    cout << '\n' << ((com_deq1 < com_deq2) ? "true" : "false");
     cout << endl;
     cout << "-------stack-------" << endl;
-    // pocket_stl::stack<int> stk;
-    // stk.push(8);
-    // for (int i = 0; i < 5; ++i){
-    //     stk.push(i);
-    // }
-    // while(!stk.empty()){
-    //     int tmp = stk.top();
-    //     stk.pop();
-    //     cout << tmp << ' ';
-    // }
-    // stk.push(7);
-    // pocket_stl::stack<int> stk2;
-    // stk2.push(5);
-    // cout << '\n' << ((stk2 < stk) ? "true" : "false");
+    pocket_stl::stack<int> stk;
+    stk.push(8);
+    for (int i = 0; i < 5; ++i){
+        stk.push(i);
+    }
+    while(!stk.empty()){
+        int tmp = stk.top();
+        stk.pop();
+        cout << tmp << ' ';
+    }
+    cout << "empty\n";
+    stk.push(7);
+    pocket_stl::stack<int> stk2;
+    stk2.push(5);
+    cout << '\n' << (stk2 < stk);
 
     return 0;
 }

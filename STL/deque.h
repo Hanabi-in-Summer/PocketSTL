@@ -189,7 +189,7 @@ namespace pocket_stl{
                                            !std::is_integral<InputIterator>::value>::type>
         deque(InputIterator first, InputIterator last) { allocate_and_copy(first, last); } 
         deque(const deque& x) { allocate_and_copy(x.begin(), x.end()); }
-        deque(deque&& x) : __map(std::move(x.__map)), __map_size(std::move(__map_size)){
+        deque(deque&& x) : __map(std::move(x.__map)), __map_size(std::move(x.__map_size)){
             __start() = std::move(x.__start());
             __finish() = std::move(x.__finish());
             x.__map = nullptr;
