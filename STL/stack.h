@@ -31,12 +31,12 @@ namespace pocket_stl{
         friend bool operator< <>(const stack& lhs, const stack& rhs);
 
     public:
-     /***************ctor 、 copy_ctor 、 move_ctor 、 dtor 、 operator=*****************/
-     explicit stack(const container_type& ctnr) : __c(ctnr) {}
-     explicit stack(container_type&& ctnr = container_type()) : __c(std::move(ctnr)) {}
-     stack(const stack& x) : __c(x.__c) {}
-     stack(stack&& x) : __c(std::move(x.__c)) {}
-     ~stack() = default;
+        /***************ctor 、 copy_ctor 、 move_ctor 、 dtor 、 operator=*****************/
+        explicit stack(const container_type& ctnr) : __c(ctnr) {}
+        explicit stack(container_type&& ctnr = container_type()) : __c(std::move(ctnr)) {}
+        stack(const stack& x) : __c(x.__c) {}
+        stack(stack&& x) : __c(std::move(x.__c)) {}
+        ~stack() = default;
 
     public:
         /***************************** Member functions *****************************/

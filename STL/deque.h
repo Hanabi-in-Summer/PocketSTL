@@ -712,7 +712,9 @@ namespace pocket_stl{
             destroy(__start().cur, __start().last);
             destroy(__finish().first, __finish().cur);
         }
-        __data_allocator().deallocate(*__start().node, buffer_size());
+        for (auto cur = __map; cur < __map + __map_size; ++cur){
+            __data_allocator().deallocate(*cur, buffer_size());
+        }
         __map_allocator().deallocate(__map, __map_size);
     }
 
