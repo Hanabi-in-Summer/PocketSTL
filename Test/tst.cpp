@@ -1,3 +1,7 @@
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <iostream>
 #include "../STL/allocator.h"
 #include "../STL/vector.h"
@@ -9,6 +13,7 @@
 #include <stack>
 #include <deque>
 
+
 /*
 ** 
 ** 
@@ -16,8 +21,8 @@
 
 using std::cout;
 using std::endl;
-using std::vector;
-#define pocket_stl std
+//using std::vector;
+//#define pocket_stl std
 int main() {
     cout << "-------vector-------" << endl;
     // vector<int, pocket_stl::allocator<int>> tst;
@@ -131,8 +136,9 @@ int main() {
         for (int i = 0; i < deq.size(); ++i){
             cout << deq[i] << ' ';
         }
-    //     // auto itr = deq.end();
-    //     // cout << *(--itr);
+        //     // auto itr = deq.end();
+        //     // cout << *(--itr);
+        
         pocket_stl::deque<int> com_deq1;
         pocket_stl::deque<int> com_deq2;
         com_deq1.push_back(5);

@@ -600,6 +600,7 @@ namespace pocket_stl{
                 destroy(__start(), new_start);
                 for (map_pointer cur = __start().node; cur < new_start.node; ++cur){
                     __data_allocator().deallocate(*cur, buffer_size());
+                    *cur = nullptr;
                 }
                 __start() = new_start;
             }
@@ -608,6 +609,7 @@ namespace pocket_stl{
                 iterator new_finish = __finish() - n;
                 for (map_pointer cur = new_finish.node + 1; cur <= __finish().node; ++cur){
                     __data_allocator().deallocate(*cur, buffer_size());
+                    *cur = nullptr;
                 }
                 __finish() = new_finish;
             }
@@ -681,6 +683,9 @@ namespace pocket_stl{
         size_type num_nodes = num_elements / buffer_size() + 1;
         __map_size = std::max(num_nodes + 2, size_type(DEQUE_INIT_MAP_SIZE));
         __map = __map_allocator().allocate(__map_size);
+        for (size_type i = 0; i < __map_size; ++i){
+            *(__map + i) = nullptr;
+        }
         map_pointer nstart = __map + (__map_size - num_nodes) / 2;
         map_pointer nfinish = nstart + num_nodes - 1;
         map_pointer cur;
@@ -693,6 +698,7 @@ namespace pocket_stl{
             while(cur != nstart){
                 --cur;
                 __data_allocator().deallocate(*cur, buffer_size());
+                *cur = nullptr;
             }
             throw;
         }
@@ -712,10 +718,15 @@ namespace pocket_stl{
             destroy(__start().cur, __start().last);
             destroy(__finish().first, __finish().cur);
         }
+        else{
+            destroy(__start().cur, __finish().cur);
+        }
         for (auto cur = __map; cur < __map + __map_size; ++cur){
             __data_allocator().deallocate(*cur, buffer_size());
+            *cur = nullptr;
         }
         __map_allocator().deallocate(__map, __map_size);
+        __map = nullptr;
     }
 
     template <class T, class Alloc>
