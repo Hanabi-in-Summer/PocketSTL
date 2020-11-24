@@ -3,6 +3,7 @@
 #include "../STL/vector.h"
 #include "../STL/list.h"
 #include "../STL/deque.h"
+#include "../STL/stack.h"
 #include <list>
 #include <vector>
 
@@ -126,7 +127,27 @@ cout << endl;
     }
     // auto itr = deq.end();
     // cout << *(--itr);
-    
+    // pocket_stl::deque<int> com_deq1;
+    // pocket_stl::deque<int> com_deq2;
+    // com_deq1.push_back(5);
+    // com_deq2.push_back(8);
+    // cout << '\n' << ((com_deq1 < com_deq2) ? "true" : "false");
+    cout << endl;
+    cout << "-------stack-------" << endl;
+    // pocket_stl::stack<int> stk;
+    // stk.push(8);
+    // for (int i = 0; i < 5; ++i){
+    //     stk.push(i);
+    // }
+    // while(!stk.empty()){
+    //     int tmp = stk.top();
+    //     stk.pop();
+    //     cout << tmp << ' ';
+    // }
+    // stk.push(7);
+    // pocket_stl::stack<int> stk2;
+    // stk2.push(5);
+    // cout << '\n' << ((stk2 < stk) ? "true" : "false");
 
     return 0;
 }
