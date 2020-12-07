@@ -225,49 +225,65 @@ namespace pocket_stl{
         const size_type&    num_elements() const noexcept { return num_and_node_allocator.data; }
 
     public:
-        __hashtable(size_type n, const HashFcn& hf, const EqualKey& eql)
+        explicit __hashtable(size_type n, const HashFcn& hf = hasher(), const EqualKey& eql = key_equal())
                 : hash(hf), equals(eql), get_key(ExtractKey()){
             num_elements() = 0;
             initialize_buckets(n);
         }
+
+        __hashtable(const __hashtable& rhs)
+            : hash(rhs.hash), equals(rhs.equals), get_key(rhs.get_key){
+            num_elements() = 0;
+            copy_from(rhs);
+        }
         
-//         explicit unordered_set ( size_type n = /* see below */,
-//                          const hasher& hf = hasher(),
-//                          const key_equal& eql = key_equal(),
-//                          const allocator_type& alloc = allocator_type() );
-// explicit unordered_set ( const allocator_type& alloc );
-// range (2)	
-// template <class InputIterator>
-//          unordered_set ( InputIterator first, InputIterator last,
-//                          size_type n = /* see below */,
-//                          const hasher& hf = hasher(),
-//                          const key_equal& eql = key_equal(),
-//                          const allocator_type& alloc = allocator_type() );
-// copy (3)	
-// unordered_set ( const unordered_set& ust );
-// unordered_set ( const unordered_set& ust, const allocator_type& alloc );
-// move (4)	
-// unordered_set ( unordered_set&& ust );
-// unordered_set ( unordered_set&& ust, const allocator_type& alloc );
-// initializer list (5)	
-// unordered_set ( initializer_list<value_type> il,
-//                 size_type n = /* see below */,
-//                 const hasher& hf = hasher(),
-//                 const key_equal& eql = key_equal(),
-//                 const allocator_type& alloc = allocator_type() );
-        
+        __hashtable& operator=(const __hashtable& rhs){
+            if(this != &rhs){
+                clear();
+                hash = rhs.hash;
+                equals = rhs.equals;
+                get_key = rhs.get_key;
+                copy_from(rhs);
+            }
+            return *this;
+        }
+
+        ~__hashtable(){
+            clear();
+        }      
 
     public:
-        std::pair<iterator, bool> insert_unique(const value_type& obj);     // 插入元素，不允许重复
-        iterator insert_equal(const value_type& obj);                       // 插入元素，允许重复
-        void resize(size_type num_elements_hint);       // 判断是否需要重建表格，如需要就扩充
+        size_type   size() { return num_elements(); }
+        size_type   max_size() const { return size_type(-1); }
+        bool        empty() const { return size() == 0; }
+        void        swap(__hashtable& rhs);
+
+        iterator        begin() noexcept;
+        const_iterator  begin() const noexcept;
+        iterator        end() noexcept { return iterator(nullptr, this); }
+        const_iterator  end() const noexcept { return const_iterator(nullptr, this); }
+
+        size_type bucket_count() const noexcept { return buckets.size(); }
+        size_type max_bucket_count() const noexcept { return __stl_prime_list[(int)__stl_num_primes - 1]; }
+        size_type bucket_size ( size_type n ) const noexcept;
+        size_type bucket(const key_type& k) const { return bkt_num_key(k); }
+        std::pair<iterator, bool> insert_unique(const value_type& obj);  // 插入元素，不允许重复
+        iterator insert_equal(const value_type& obj);                    // 插入元素，允许重复
+        void resize(size_type num_elements_hint);                        // 判断是否需要重建表格，如需要就扩充
         void clear();
         void copy_from(const __hashtable& ht);
+
+        iterator        find ( const key_type& k );
+        const_iterator  find ( const key_type& k ) const;
+        size_type count ( const key_type& k ) const;
+        std::pair<iterator, iterator> equal_range_map ( const key_type& k );
+        std::pair<const_iterator, const_iterator> equal_range_map ( const key_type& k ) const;
+        std::pair<iterator, iterator> equal_range_set ( const key_type& k );
+        std::pair<const_iterator, const_iterator> equal_range_set ( const key_type& k ) const;
 
     private:
         /************************** 辅助工具 *****************************/
         inline size_type __stl_next_prime(size_type n) noexcept;
-        size_type max_bucket_count() const noexcept { return __stl_prime_list[__stl_num_primes - 1]; }
         node* new_node(const value_type& obj);
         void delete_node(node* n);
         void initialize_buckets(size_type n);
@@ -281,6 +297,102 @@ namespace pocket_stl{
     };
 
     /*-------------------------------部分函数定义------------------------------------*/
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    void
+    HASHTABLE::swap(__hashtable& rhs){
+        std::swap(hash, rhs.hash);
+        std::swap(equals, rhs.equals);
+        std::swap(get_key, rhs.get_key);
+        buckets.swap(rhs.buckets);
+        std::swap(num_elements(), rhs.num_elements());
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    typename HASHTABLE::iterator
+    HASHTABLE::begin() noexcept{
+        for (size_type n = 0; n < buckets.size(); ++n){
+            if (buckets[n]) return iterator(buckets[n], this);
+        }
+        return end();
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    typename HASHTABLE::const_iterator
+    HASHTABLE::begin() const noexcept{
+        for (size_type n = 0; n < buckets.size(); ++n){
+            if (buckets[n]) return const_iterator(buckets[n], this);
+        }
+        return end();
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    typename HASHTABLE::size_type 
+    HASHTABLE::bucket_size(size_type n) const noexcept{
+        size_type result = 0;
+        for (auto cur = buckets[n]; cur; cur = cur->next){
+            ++result;
+        }
+        return result;
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    typename HASHTABLE::iterator
+    HASHTABLE::find(const key_type& k){
+        size_type n = bkt_num_key(k);
+        node* first;
+        for (first = buckets[n]; first && !equals(get_key(first->val), k); first = first->next);
+        return iterator(first, this);
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    typename HASHTABLE::const_iterator
+    HASHTABLE::find(const key_type& k) const{
+        size_type n = bkt_num_key(k);
+        node* first;
+        for (first = buckets[n]; first && !equals(get_key(first->val), k); first = first->next);
+        return const_iterator(first, this);
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    typename HASHTABLE::size_type 
+    HASHTABLE::count ( const key_type& k ) const{
+        const size_type n = bkt_num_key(k);
+        size_type result = 0;
+        for (const node* cur = buckets[n]; cur; cur = cur->next){
+            if (equals(get_key(cur->val), k)) ++result;    
+        }
+        return result;
+    }
+
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    std::pair<typename HASHTABLE::iterator, typename HASHTABLE::iterator> 
+    HASHTABLE::equal_range_map ( const key_type& k ){
+        const size_type n = bkt_num_key(k);
+        for (node* first = buckets[n]; first; first = first->next){
+            if(equals(get_key(first->val), k)){
+                for (node* second = first->next; second; second = second->next){
+                    if(!equals(get_key(second->val), k)){
+                        return std::make_pair(iterator(first, this), iterator(second, this));
+                    }
+                }
+                for (size_type m = n + 1; m < buckets.size(); ++m){
+                    if(buckets[m]){
+                        return std::make_pair(iterator(first, this), iterator(buckets[m], this));
+                    }
+                }
+            }
+        }
+        return std::make_pair(end(), end());
+    }
+
     template <class Value, class Key, class HashFcn,
                 class ExtractKey, class EqualKey, class Alloc>
     std::pair<typename HASHTABLE::iterator, bool>
