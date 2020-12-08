@@ -332,6 +332,10 @@ namespace pocket_stl{
         void rehash(size_type n) { resize(n * mlf); }
         void reserve(size_type n) { rehash(static_cast<size_type>(ceil(n / max_load_factor()))); }
 
+        hasher hash_function() const { return hash; }
+        key_equal key_eq() const { return equals; }
+        allocator_type get_allocator() const noexcept { return allocator_type(); }
+
     private:
         /************************** 辅助工具 *****************************/
         inline size_type __stl_next_prime(size_type n) noexcept;
@@ -914,6 +918,13 @@ namespace pocket_stl{
             buckets[n] = cur;
             --num_elements();
         }
+    }
+
+    /*-------------------------------Non-member function overloads------------------------------------*/
+    template <class Value, class Key, class HashFcn,
+                class ExtractKey, class EqualKey, class Alloc>
+    void swap(HASHTABLE& lhs, HASHTABLE& rhs) noexcept{
+        lhs.swap(rhs);
     }
 
 } // namespace 
