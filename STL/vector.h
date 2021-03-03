@@ -100,7 +100,7 @@ namespace pocket_stl{
         }
 
         // **** operator=
-        // copy
+        // copy 
         vector& operator=(const vector& x);
         // move
         vector& operator=(vector&& x);

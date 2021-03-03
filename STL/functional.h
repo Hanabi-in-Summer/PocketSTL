@@ -6,7 +6,7 @@
 namespace pocket_stl{
     // 定义一元函数的参数型别和返回值型别
     template <class Arg, class Result>
-    struct unarg_function{
+    struct unary_function{
         using argument_type = Arg;
         using result_type   = Result;
     };
@@ -17,6 +17,13 @@ namespace pocket_stl{
         using first_argument_type   = Arg1;
         using second_argument_type  = Arg2;
         using result_type = Result;
+    };
+
+    template<class T>
+    struct identity : public unary_function<T, T>{
+        const T& operator()(const T& x) const{
+            return x;
+        }
     };
 
     template <class T>

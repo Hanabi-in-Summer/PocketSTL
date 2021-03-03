@@ -12,17 +12,19 @@
 #include "allocator.h"
 #include "algobase.h"
 #include "vector.h"
+#include "functional.h"
 
 #define HASHTABLE __hashtable<Value, Key, HashFcn, ExtractKey, EqualKey, Alloc>
 
-namespace pocket_stl{
-    #if (_MSC_VER && _WIN64) || ((__GNUC__ || __clang__) &&__SIZEOF_POINTER__ == 8)
-    #define SYSTEM_64 1
-    #else
-    #define SYSTEM_32 1
-    #endif
+#if (_MSC_VER && _WIN64) || ((__GNUC__ || __clang__) &&__SIZEOF_POINTER__ == 8)
+#define SYSTEM_64 1
+#else
+#define SYSTEM_32 1
+#endif
 
-    #ifdef SYSTEM_64
+#ifdef SYSTEM_64
+namespace pocket_stl{
+
     static const int __stl_num_primes = 99;
     // 1. start with p = 101
     // 2. p = next_prime(p * 1.7)
@@ -94,7 +96,10 @@ namespace pocket_stl{
             node.next = nullptr;
         }
     };
-
+    
+    // HashFcn : HashFunction的函数型别
+    // ExtractKey : 从节点中取出键值的方法
+    // EqualKey : 判断键值相同与否
     template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey, class Alloc>
     class __hashtable;
 
@@ -122,8 +127,8 @@ namespace pocket_stl{
     private:
         template <class, class, class, class, class, class> friend class __hashtable;
         template <class, class, class, class, class, class> friend class __hashtable_const_iterator;
-        node* cur;
-        hashtable* ht;
+        node* cur;          // 迭代器目前所指节点
+        hashtable* ht;      // 指向容器
     public:
         __hashtable_iterator() = default;
         __hashtable_iterator(node* n, hashtable* tab) : cur(n), ht(tab) {}
