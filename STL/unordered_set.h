@@ -75,7 +75,34 @@ namespace pocket_stl{
         equal_range(const key_type& k) const { return rep.equal_range_unique(k); }
     /*********************** Modifiers ***********************/
         template <class... Args>
-        std::pair <iterator,bool> emplace ( Args&&... args );
+        std::pair<iterator, bool> emplace(Args&&... args) { return rep.emplace_unique(std::forward<Args>(args)...); }
+        // template <class... Args>
+        // iterator emplace_hint ( const_iterator position, Args&&... args );
+        std::pair<iterator, bool> insert(const value_type& val) { return rep.insert_unique(val); }
+        std::pair<iterator, bool> insert(value_type&& val) { return rep.emplace_unique(std::move(val)); }
+        template <class InputIterator, class = typename std::enable_if<
+                                           !std::is_integral<InputIterator>::value>::type>
+        void insert(InputIterator first, InputIterator last) { return rep.insert_unique_copy(first, last); }
+        iterator erase(const_iterator position) { return rep.erase(position); }
+        size_type erase(const key_type& k) { return rep.erase(k); }
+        iterator erase(const_iterator first, const_iterator last) { return rep.erase(first, last); }
+        void clear() noexcept { rep.clear(); }
+        void swap(unordered_set& ust) { rep.swap(ust.rep); }\
+    /*********************** Buckets ***********************/
+        size_type bucket_count() const noexcept { return rep.bucket_count(); }
+        size_type max_bucket_count() const noexcept { return rep.max_bucket_count(); }
+        size_type bucket_size(size_type n) const { return rep.bucket_size(); }
+        size_type bucket(const key_type& k) const { return rep.bucket; }
+
+        float load_factor() const noexcept { return rep.load_factor(); }
+        float max_load_factor() const noexcept { return rep.max_load_factor(); }
+        void max_load_factor(float z) { return rep.max_load_factor(z); }
+        void rehash(size_type n) { rep.rehash(n); }
+        void reserve(size_type n) { rep.reserve(n); }
+
+        hasher hash_function() const { return rep.hash_function(); }
+        key_equal key_eq() const { return rep.key_eq(); }
+        allocator_type get_allocator() const noexcept { return allocator_type(); }
     };
    
 

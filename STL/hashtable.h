@@ -12,19 +12,17 @@
 #include "allocator.h"
 #include "algobase.h"
 #include "vector.h"
-#include "functional.h"
 
 #define HASHTABLE __hashtable<Value, Key, HashFcn, ExtractKey, EqualKey, Alloc>
 
-#if (_MSC_VER && _WIN64) || ((__GNUC__ || __clang__) &&__SIZEOF_POINTER__ == 8)
-#define SYSTEM_64 1
-#else
-#define SYSTEM_32 1
-#endif
-
-#ifdef SYSTEM_64
 namespace pocket_stl{
+    #if (_MSC_VER && _WIN64) || ((__GNUC__ || __clang__) &&__SIZEOF_POINTER__ == 8)
+    #define SYSTEM_64 1
+    #else
+    #define SYSTEM_32 1
+    #endif
 
+    #ifdef SYSTEM_64
     static const int __stl_num_primes = 99;
     // 1. start with p = 101
     // 2. p = next_prime(p * 1.7)
